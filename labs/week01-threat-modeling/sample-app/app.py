@@ -4,6 +4,7 @@ You will NOT exploit this in Week 1 — you will draw a data-flow diagram
 and apply STRIDE to its components (web client, app, SQLite DB, /upload).
 """
 from flask import Flask, request, jsonify, send_from_directory
+from werkzeug.utils import secure_filename  # <--- [จุดที่ 1] เพิ่มบรรทัดนี้เข้ามา
 import sqlite3, os
 
 app = Flask(__name__)
@@ -31,8 +32,13 @@ def notes():
 @app.route("/upload", methods=["POST"])
 def upload():
     f = request.files["file"]
-    f.save(os.path.join(UPLOAD_DIR, f.filename))
-    return {"saved": f.filename}
+    
+    # <--- [จุดที่ 2] เอาชื่อไฟล์มาผ่าน secure_filename เพื่อทำความสะอาดก่อน
+    safe_name = secure_filename(f.filename) 
+    
+    # <--- [จุดที่ 3] เปลี่ยนมาเซฟด้วยชื่อที่ปลอดภัย (safe_name)
+    f.save(os.path.join(UPLOAD_DIR, safe_name))
+    return {"saved": safe_name}
 
 @app.route("/files/<name>")
 def files(name):
