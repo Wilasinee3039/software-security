@@ -16,12 +16,21 @@ Ethics note: This worksheet is for modeling and defensive verification on the pr
 | Wilasinee Mangkorn | 6631503039 | 15/08/2026 | |
 
 ## Part 2 — Lecture Questions
-Answer in your own words (2–4 sentences each).
-1. Define the CIA triad and give one concrete failure example for each of the three properties.
-2. What is a *trust boundary*, and why does data crossing one deserve extra scrutiny?
-3. Explain "attack surface." Name two things that increase it in a web app.
-4. What does each STRIDE letter map to, and which security property does each threat violate?
-5. What does "Secure by Design" (CISA) mean, and how does it differ from bolting security on after release?
+
+**1. Define the CIA triad and give one concrete failure example for each of the three properties.**
+The CIA triad stands for Confidentiality, Integrity, and Availability, representing the core pillars of information security. A Confidentiality failure is a data breach leaking user passwords. An Integrity failure is an attacker altering the price of an item in a shopping cart before checkout. An Availability failure is a website crashing and becoming inaccessible due to a DDoS attack.
+
+**2. What is a trust boundary, and why does data crossing one deserve extra scrutiny?**
+A trust boundary is a logical line where data moves from a less secure, untrusted environment (like the public internet) into a more trusted system (like your application backend). Data crossing this boundary deserves extra scrutiny because it is controlled by external users; treating all incoming data as potentially malicious and validating it prevents attackers from injecting harmful payloads.
+
+**3. Explain "attack surface." Name two things that increase it in a web app.**
+The attack surface is the total sum of all potential entry points or vulnerabilities an attacker could exploit to compromise a system. In a web application, two things that heavily increase the attack surface are adding new unauthenticated API endpoints and integrating outdated third-party dependencies or plugins.
+
+**4. What does each STRIDE letter map to, and which security property does each threat violate?**
+STRIDE maps to Spoofing (violates Authentication), Tampering (violates Integrity), and Repudiation (violates Non-repudiation/Auditing). It also covers Information Disclosure (violates Confidentiality), Denial of Service (violates Availability), and Elevation of Privilege (violates Authorization).
+
+**5. What does "Secure by Design" (CISA) mean, and how does it differ from bolting security on after release?**
+"Secure by Design" means integrating security principles directly into the software's architecture from the very first planning stages to eliminate entire classes of vulnerabilities. This proactive approach differs fundamentally from "bolting security on," which is a reactive, never-ending cycle of finding and patching individual bugs only after the software has already been deployed to production.
 
 ## Part 3 — Hands-on Lab (180 min)
 **Learning goals:** build a data-flow diagram (DFD), apply STRIDE to a real Flask app, rank risks, and propose mitigations.
@@ -53,72 +62,67 @@ Source to model lives in `sample-app/app.py`. Template to fill: `THREAT-MODEL-TE
 ### Task 3 — Elevation of Privilege game
 
 **Carded Threats & Score:**
-1. **Card: 5 of Spades (Spoofing)** - *Threat:* An attacker can spoof an identity because there is no authentication. *Mapped to:* The `/notes` endpoint allows anyone to set the `owner` JSON field directly.
-2. **Card: 8 of Clubs (Tampering)** - *Threat:* An attacker can manipulate a filename to overwrite unintended files. *Mapped to:* The `/upload` endpoint trusts `f.filename` without sanitization.
-3. **Card: 3 of Hearts (Information Disclosure)** - *Threat:* The system reveals internal file paths or sensitive data. *Mapped to:* The `/files/<name>` endpoint can leak backend system files if path traversal is exploited.
+1. **Card: 4 of Spades (Spoofing)** 
+   * *Card text:* "An attacker can anonymously connect, because we expect authentication to be done at a higher level."
+   * *Mapped to DFD:* The `/notes` POST endpoint accepts JSON payloads (`owner` and `body`) and writes them directly to `notes.db` without any session validation or authentication checks.
+2. **Card: 6 of Clubs (Tampering)**
+   * *Card text:* "An attacker can write to a data store your code relies on."
+   * *Mapped to DFD:* The `/upload` endpoint uses `os.path.join(UPLOAD_DIR, f.filename)`. By using a payload like `../../../notes.db`, an attacker can overwrite the actual SQLite database file the application relies on.
+3. **Card: 10 of Hearts (Information Disclosure)**
+   * *Card text:* "An attacker can read information in files or databases with no access controls."
+   * *Mapped to DFD:* The `/notes` GET endpoint executes `SELECT id, owner, body FROM notes` and returns all rows to anyone who visits the URL, lacking any authorization constraints.
+
 **Total Score:** 3 points.
 
 ### Task 3b — Systems-level pass
-*   **Trust boundaries end-to-end:** A request flows from Web Client ➔ (Internet Boundary) ➔ Flask App ➔ (Process Boundary) ➔ SQLite DB. The crossing with **no check on it** is the Internet ➔ Flask App boundary (the `/notes` endpoint lacks authentication).
+
+*   **Trust boundaries end-to-end:** 
+    A request flows from Web Client ➔ (Internet Boundary) ➔ Flask App (`app.py`) ➔ (OS Boundary) ➔ File System (`notes.db` & `uploads/`). The crossing with **no check on it** is the Internet ➔ Flask App boundary for both `/notes` and `/upload` endpoints, as they blindly accept unauthenticated input.
 *   **Assume one element is fully owned:**
-    1.  *Flask process:* Attacker reaches the entire `notes.db` and can read/write to the host's file system.
-    2.  *uploads/ store:* Attacker can replace legitimate files with executable scripts, potentially reaching other users' local machines when downloaded.
-*   **Chain two "low" findings:** Missing rate limiting (Minor DoS) ➔ Unauthenticated file upload (Tampering) ➔ **Consequence:** Attacker rapidly uploads large junk files, exhausting disk space and crashing the app.
-*   **One-line system claim:** "Even if every element-level mitigation in Task 8 is implemented, this system still fails if **the Flask application is run with root/administrator privileges on the host OS**."
+    1.  *Flask process:* If an attacker owns the running Flask process, they immediately gain read/write access to `notes.db` and the `uploads/` directory, and can execute commands with the same OS privileges as the Python runtime.
+    2.  *uploads/ store:* If an attacker completely controls the `uploads/` directory, they can place a malicious `.html` or `.js` file there. Since `/files/<name>` serves these files via `send_from_directory`, the attacker can link it to victims to achieve Stored XSS.
+*   **Chain two "low" findings:** 
+    Missing file size limits on `/upload` (Minor DoS) ➔ Unauthenticated access to `/upload` (Spoofing/Bypass). 
+    **Consequence:** An anonymous attacker can write a simple loop script to rapidly upload gigabytes of dummy files, exhausting the host server's disk space and causing the entire Flask application (and potentially the OS) to crash.
+*   **One-line system claim:** 
+    "Even if every element-level mitigation in Task 8 is implemented, this system still fails if **the Flask application is run as the 'root' user**, allowing any unforeseen bypass to instantly compromise the entire host operating system."
 
 ---
 
-## 🧠 Comprehension & Prompt (required)
-
-**A. Explain in Plain English (EiPE).** In 2–3 sentences, in your own words, describe what this week's vulnerable code/endpoint actually *does* and *why it is exploitable* — explain the mechanism, don't dump jargon.
-
-**B. Prompt Problem.** Write a **single prompt** that makes an AI produce a *correct, secure* fix for one finding. Run it: does the exploit now fail? If not, refine the prompt and try again. Submit the **final prompt + the verified result**.
-*Graded on the prompt's precision and your verification — this trains problem decomposition and AI literacy (Denny et al. 2024).*
 
 ### Task 4 — Abuse cases & attacker personas
 
-**Persona 1: Anonymous Internet Attacker** (Goal: Compromise the server or cause disruption)
-*   **Abuse Case 1 (Elevation of Privilege):** The attacker uploads a malicious `.sh` or `.py` file to `/upload` using a path traversal payload (`../../`) to overwrite a system binary or place a backdoor in an executable path, aiming to gain full Remote Code Execution (RCE).
-*   **Abuse Case 2 (Denial of Service):** The attacker writes a script to continuously send multi-gigabyte junk files to the `/upload` endpoint until the server's disk space is completely exhausted, causing the application to crash for legitimate users.
+**Persona 1: Anonymous Internet Attacker** (Goal: System Disruption & Server Takeover)
+*   **Abuse Case 1 (Tampering / Path Traversal):** The attacker bypasses the intended `uploads/` directory by sending a POST request to `/upload` with the filename `../../../app.py` containing a malicious script, overwriting the application's core logic to achieve Remote Code Execution.
+*   **Abuse Case 2 (Denial of Service):** The attacker writes a simple script to continuously send unauthenticated POST requests to `/upload` with massive junk files. Since the endpoint lacks file size validation and rate limits, this rapidly exhausts the server's disk space, causing the application to crash.
 
-**Persona 2: Malicious User / Troll** (Goal: Defame others or steal information)
-*   **Abuse Case 3 (Spoofing):** The attacker sends a POST request to `/notes` with the `owner` field set to the admin's name, inserting fake or offensive messages into the database to ruin the admin's reputation.
-*   **Abuse Case 4 (Information Disclosure):** The attacker attempts to read internal server files by guessing system file names (e.g., `config.py` or `.env`) via the `/files/<name>` endpoint.
+**Persona 2: Malicious Peer / Troll** (Goal: Defamation & Data Harvesting)
+*   **Abuse Case 3 (Spoofing):** The attacker sends a POST request to `/notes` specifying `{"owner": "admin", "body": "offensive content"}`. Because the endpoint explicitly trusts the `owner` field without any authentication checks, the attacker successfully injects fake records to ruin another user's reputation.
+*   **Abuse Case 4 (Information Disclosure):** The attacker continuously sends GET requests to the `/notes` endpoint. Since the API lacks authorization and returns the entire `notes` database table to any visitor, the attacker successfully scrapes all notes created by all users in the system.
 
 ---
 
 ### Task 5 — Path-traversal deep-dive
-
-**1. Data Flow Trace (`/upload` → `/files/<name>`):**
-*   **Attacker** sends HTTP POST to `/upload` with file attachment and a manipulated filename (e.g., `filename="../../../etc/shadow"`).
-*   **Flask App** receives the payload. Without sanitization, it concatenates the base upload directory with the raw filename: `uploads/../../../etc/shadow`.
-*   **Operating System** interprets `../` as "move up one directory". It escapes the `uploads/` folder and writes the file to the root system directory.
-
-**2. Secure Design Note:**
-To prevent this, the application must employ defense-in-depth:
-1.  **Sanitization:** Pass the user-supplied filename through `werkzeug.utils.secure_filename()` to strip out all `../` and `/` characters before saving.
-2.  **Allow-listing:** Strictly validate the file extension against a safe list (e.g., only `.txt`, `.png`).
-3.  **Storage:** Store uploaded files in a directory located *outside* the application's web root to prevent direct execution of uploaded scripts.
+**Data Flow Trace & Explanation:**
+The vulnerability lies entirely in `/upload`. When an attacker sends a filename like `../../hacked.txt`, the code uses `os.path.join(UPLOAD_DIR, f.filename)`. Because `os.path.join` resolves `../`, it moves up the directory tree, escaping `uploads/` and writing the file wherever the payload dictates.
+Conversely, the `/files/<name>` endpoint is actually protected. It uses Flask's native `send_from_directory()`, which securely normalizes the path and will throw a 404/403 error if an attacker attempts to read files outside the designated `UPLOAD_DIR` using `../`.
+**Secure Design Note:** To fix `/upload`, we must sanitize the input using `werkzeug.utils.secure_filename(f.filename)`, which proactively strips slashes and `../` before the path is joined.
 
 ### Task 6 — Threat-model the project target
 
-**(![DFD NoteVault](notevault-dfd.png))**
+![DFD NoteVault](notevault-dfd.jpg)
 
 **Top 3 STRIDE Threats for NoteVault:**
-1. **Spoofing:** The application might allow unauthenticated access to the notes API, enabling anyone to view or modify notes if proper session management or token validation is not strictly enforced.
-2. **Information Disclosure (IDOR):** If the application uses predictable sequential IDs for notes without verifying ownership (Authorization check) on each request, User A might be able to read User B's private notes simply by changing the ID in the URL.
-3. **Tampering (Cross-Site Scripting - XSS):** If the application accepts rich text or markdown for note bodies but fails to sanitize the input before rendering it in the browser, an attacker could store a malicious script in a note that executes when another user views it.
+1. **Spoofing (No Session Validation):** The `/notes` POST endpoint natively trusts the user identity provided in the request payload without enforcing a cryptographically signed session token, allowing anyone to impersonate any user.
+2. **Information Disclosure (Insecure Direct Object Reference - IDOR):** The application fetches note details using predictable, sequential integer IDs in the URL without enforcing ownership authorization checks, allowing an attacker to directly read other users' private notes by incrementing the ID.
+3. **Tampering (Stored Cross-Site Scripting):** The note rendering component directly outputs user-supplied note bodies to the browser without applying HTML entity encoding or sanitization, permitting an attacker to store malicious JavaScript that executes when a victim views the note.
 
 ---
 
 ### Task 7 — Security requirements
-
-1. **Mitigating Spoofing (Authentication):**
-   * *Requirement:* The system must authenticate all requests to the `/notes` API by validating a secure session token or JWT, so that attackers cannot spoof the `owner` identity in the payload.
-2. **Mitigating Tampering (Path Traversal/Uploads):**
-   * *Requirement:* The system must sanitize all uploaded file names using `werkzeug.utils.secure_filename()` and strictly validate extensions against an allow-list, so that attackers cannot write files outside the designated `uploads/` directory.
-3. **Mitigating Information Disclosure (Authorization/IDOR):**
-   * *Requirement:* The system must enforce authorization checks on every data retrieval endpoint, verifying that the authenticated user's ID matches the owner ID of the requested note, so that users can only access their own data.
+1. **Spoofing:** "The system MUST reject any POST request to `/notes` with a 401 Unauthorized status code if the request does not include a valid, signed JWT session token."
+2. **Tampering:** "Given a file upload request with the filename `../../../test.txt`, the system MUST save the file strictly within the `uploads/` directory as `test.txt`, stripping all path traversal characters."
+3. **Denial of Service:** "The `/upload` endpoint MUST return a 413 Payload Too Large error if the uploaded file exceeds 5MB in size."
 
    
 ### Task 8 — Defend / fix it: rank & mitigate
@@ -138,12 +142,9 @@ To prevent this, the application must employ defense-in-depth:
 
 ## Part 4 — Reflection
 
-1. **Map finding to CWE/OWASP:** 
-   The Path Traversal vulnerability in the `/upload` endpoint maps to **CWE-22 (Improper Limitation of a Pathname to a Restricted Directory)** and **OWASP A06 (Insecure Design)**, because the system was designed to implicitly trust user-supplied input for file paths without a defense mechanism.
-2. **Real-world breach:** 
-   The 2021 Apache HTTP Server path traversal attack (CVE-2021-41773) allowed attackers to map URLs to files outside the expected document root. A "Secure by Design" control that strictly normalizes and validates all file paths against a strict allowlist before accessing the file system would have prevented this.
-3. **Best Mitigation:** 
-   Using `secure_filename()` combined with storing uploaded files completely outside the web root provides the most risk reduction per unit of effort. It effectively kills the entire class of path traversal vulnerabilities with just one or two lines of code, without requiring complex architecture changes.
+1. **Map finding to CWE/OWASP:** The vulnerability maps to **CWE-22 (Path Traversal)** and **OWASP A06 (Insecure Design)** because the application natively trusts user-controlled paths without architectural boundaries.
+2. **Real-world breach:** The Apache HTTP Server vulnerability (CVE-2021-41773) allowed path traversal because a logic flaw in path normalization allowed attackers to read files outside the document root. A strict "Secure by Design" mechanism that normalizes paths and enforces a root-jail would have prevented it.
+3. **Best Mitigation:** Implementing `secure_filename()` offers the best ROI. It requires only one line of code but completely neutralizes an entire class of path traversal inputs.
 
 ---
 
@@ -163,3 +164,10 @@ The AI's suggested fix is dangerously incomplete. The line `safe_name = f.filena
 from werkzeug.utils import secure_filename
 safe_name = secure_filename(f.filename)
 f.save(os.path.join(UPLOAD_DIR, safe_name))
+
+## 🧠 Comprehension & Prompt (required)
+
+**A. Explain in Plain English (EiPE).** In 2–3 sentences, in your own words, describe what this week's vulnerable code/endpoint actually *does* and *why it is exploitable* — explain the mechanism, don't dump jargon.
+
+**B. Prompt Problem.** Write a **single prompt** that makes an AI produce a *correct, secure* fix for one finding. Run it: does the exploit now fail? If not, refine the prompt and try again. Submit the **final prompt + the verified result**.
+*Graded on the prompt's precision and your verification — this trains problem decomposition and AI literacy (Denny et al. 2024).*
