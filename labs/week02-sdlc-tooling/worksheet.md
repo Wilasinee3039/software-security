@@ -86,6 +86,28 @@ Target under scan: `vulnerable-repo/app.py` (plus `requirements.txt`). It contai
 
 **Task 5 — Scan the project target (40 min)**
 
+* **Deliverable (Scan Execution & Findings):** 
+  The project target was successfully scanned using Semgrep, Gitleaks, and Trivy to identify code patterns, exposed secrets, and vulnerable dependencies.
+
+* **Findings List:**
+  * **Tool: Semgrep (Total Findings: 10)**
+    * Finding 1: `app.py:19` - [CWE-89] `sql-injection-db-cursor-execute` (User-controlled data directly formatted into SQL query string).
+    * Finding 2: `app.py:26` - [CWE-78] `subprocess-shell-true` (Unsafe `subprocess` execution using `shell=True` with user input).
+    * Finding 3: `app.py:30` - [CWE-327] `insecure-hash-algorithm-md5` (Use of broken/insecure MD5 hash algorithm).
+    * Finding 4: `app.py:33` - [CWE-489] `debug-enabled` (Flask application configured with `debug=True`).
+
+  * **Tool: Gitleaks**
+    * Status: Clean (`no leaks found` in the target files).
+
+  * **Tool: Trivy (Total Vulnerabilities: 32 in `requirements.txt`)**
+    * Finding 1: `Flask / CVE-2023-30861` - [HIGH] Possible disclosure of permanent session cookie due to missing Vary: Cookie.
+    * Finding 2: `PyJWT / CVE-2022-29217` - [HIGH] Key confusion through non-blocklisted public key formats.
+    * Finding 3: `Werkzeug / CVE-2023-25577` - [HIGH] High resource usage when parsing multipart form data.
+    * Finding 4: `urllib3 / CVE-2021-33503` - [HIGH] ReDoS in the parsing of authority part of URL.
+
+* **Scan Output Evidence:**
+  ![Task 5 scan](<Screenshot 2026-08-16 140418.png>)
+
 **Findings List (NoteVault Project):**
 
 * **Tool: Semgrep (Total Findings: 31)**
@@ -123,7 +145,70 @@ Semgrep did not flag these hardcoded secrets because pattern-based SAST rules ma
 
 
 
-**Task 8 — Defend / fix it (10 min)** · *Goal:* remediate the planted flaws in `vulnerable-repo/app.py`. *Steps:* rewrite `/user` to use a parameterized query (`?` placeholder); remove `shell=True` and pass an argument list in `/ping`; move both secrets to environment variables; replace `md5` with bcrypt/argon2; set `debug=False`. *Deliverable:* a before/after diff for each fix mapped to its CWE.
+**Task 8 — Defend / fix it (10 min)** 
+**Remediation Diffs:**
+
+* **CWE-89 (SQL Injection in `/user`):**
+  * *Before:*
+    ```python
+    q = "SELECT * FROM users WHERE name = '%s'" % name
+    rows = con.execute(q).fetchall()
+    ```
+  * *After:*
+    ```python
+    # Replaced string formatting with parameterized query
+    q = "SELECT * FROM users WHERE name = ?"
+    rows = con.execute(q, (name,)).fetchall()
+    ```
+
+* **CWE-78 (OS Command Injection in `/ping`):**
+  * *Before:*
+    ```python
+    out = subprocess.run("ping -c 1 " + host, shell=True, capture_output=True)
+    ```
+  * *After:*
+    ```python
+    # Removed shell=True and passed arguments as a secure list
+    out = subprocess.run(["ping", "-c", "1", host], shell=False, capture_output=True)
+    ```
+
+* **CWE-798 (Hardcoded Secrets):**
+  * *Before:*
+    ```python
+    AWS_SECRET_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
+    DB_PASSWORD = "super_secret_password_123"
+    ```
+  * *After:*
+    ```python
+    import os
+    # Moved secrets to environment variables
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    ```
+
+* **CWE-327 (Broken Crypto/Hashing):**
+  * *Before:*
+    ```python
+    import hashlib
+    hash = hashlib.md5(password.encode()).hexdigest()
+    ```
+  * *After:*
+    ```python
+    # Replaced insecure md5 with a strong adaptive hash (bcrypt)
+    import bcrypt
+    hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    ```
+
+* **CWE-489 (Leftover Debug Code):**
+  * *Before:*
+    ```python
+    app.run(debug=True)
+    ```
+  * *After:*
+    ```python
+    # Disabled debug mode for production safety
+    app.run(debug=False)
+    ```
 
 ### Part 4 — Reflection
 
@@ -205,11 +290,10 @@ q = "SELECT * FROM users WHERE name = ?"
 return str(con.execute(q, (name,)).fetchall())
 
 **Explanation:** The AI's output was insufficient because it focused entirely on modernizing Python string syntax rather than addressing the actual root cause of SQL injection. The corrected version uses parameterized queries (`?` placeholder), which forces the database driver to treat the user input strictly as literal data, isolating it from the executable SQL logic.
-
-
+```
 ---
 
-## 🧠 Comprehension & Prompt (required)
+### 🧠 Comprehension & Prompt (required)
 
 ### A. Explain in Plain English (EiPE)
 
