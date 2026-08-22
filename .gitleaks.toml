@@ -1,0 +1,27 @@
+# Gitleaks configuration for this teaching repository.
+#
+# This repo deliberately contains planted credentials: students run Gitleaks
+# against them in Week 2 (SDLC tooling) and Week 15 (DevSecOps pipeline) and are
+# graded on naming the rule that fired. Those files must therefore keep firing
+# for STUDENTS — who scan the lab folder directly, without this config — while
+# not failing this repository's own CI on findings that are the whole point of
+# the exercise.
+#
+# Anything outside the allowlisted paths below is still scanned normally: a real
+# leaked credential committed anywhere else will still fail CI.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Intentionally planted teaching secrets (students scan these on purpose)"
+paths = [
+  '''labs/week02-sdlc-tooling/vulnerable-repo/.*''',
+  '''labs/week13-cloud-container/Dockerfile\.insecure''',
+  '''labs/week15-devsecops-pipeline/.*''',
+  # Week 2's slide deck quotes this exact planted key inline, to show the
+  # contrast with the well-known AWS-docs example key that gitleaks won't
+  # fire on — same secret as the vulnerable-repo path above, just quoted a
+  # second time as a teaching illustration.
+  '''slides/week02\.md''',
+]

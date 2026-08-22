@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Graded quizzes — KOSEN·KMITL{% endblock %}
+{% block main %}
+<div class="lx-ground">
+  <div class="lx-wrap">
+    <div class="lx-dashhead">
+      <div>
+        <p class="lx-eyebrow">Graded weekly quizzes</p>
+        <h1 class="lx-h1">Your quizzes</h1>
+      </div>
+      <a class="lx-btn" href="/assess/new">+ Publish a new quiz</a>
+    </div>
+    {% if not assessments %}
+    <p class="lx-empty">Nothing published yet.</p>
+    {% else %}
+    <ul class="lx-list">
+      {% for a in assessments %}
+        <li class="lx-listcard">
+          <div class="lx-listcard-main">
+            <a class="lx-listcard-t lx-listcard-t--link" href="/assess/{{ a.id }}">{{ a.title }}</a>
+            <span class="lx-listcard-sub">form {{ a.variant }} · {{ a.submitted }}/{{ a.issued }} submitted
+              {%- if a.released %} · released{% endif %}</span>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

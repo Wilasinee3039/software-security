@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if editing %}Edit set{% else %}New set{% endif %} — KOSEN·KMITL Live Quiz</title>
+<link rel="stylesheet" href="/static/style.css?v={{ asset_v }}"></head>
+<body><div class="stage">
+  <header class="masthead">
+    <div class="mark"><div class="word"><span class="k">KOSEN</span><span class="dot">·</span><span class="m">KMITL</span></div>
+      <div class="sub">Live Quiz · {% if editing %}Edit question set{% else %}New question set{% endif %}</div></div>
+    <a class="btn-ghost" href="/console">&larr; Back to console</a>
+  </header>
+  <div class="drule"></div>
+
+  <section class="setup-wrap"><div class="setup-card wide">
+    <h1>{% if editing %}Edit set{% else %}New question set{% endif %}</h1>
+    <p class="lead">One <code>## Topic</code> heading, then numbered questions — mark the right answer
+      with a <b>&#10003;</b>. Preview to see how many parse before you save.</p>
+    {% if error %}<div class="join-err">{{ error }}</div>{% endif %}
+
+    <!-- action stays on the edit URL when editing so a validation error re-renders in edit mode.
+         All values below are Jinja-autoescaped; the preview script uses textContent only. -->
+    <form method="post" enctype="multipart/form-data"
+          action="{% if editing %}/console/sets/{{ editing.id }}/edit{% else %}/console/sets/new{% endif %}">
+      <input type="hidden" id="csrf" name="csrf_token" value="{{ csrf_token }}">
+
+      <div class="field field-gap">
+        <label for="title">Set title</label>
+        <input class="inp" id="title" name="title" maxlength="120" value="{{ title }}"
+               placeholder="e.g. Week 1 — Threat modelling">
+      </div>
+
+      {# Which course this set belongs to. Shown only when there is more than one,
+         so the single-course case keeps a form with no redundant choice on it —
+         same convention as assess_new.html's picker. #}
+      {% if courses|length > 1 %}
+      <div class="field field-gap">
+        <label for="course_slug">Course</label>
+        <select class="inp" id="course_slug" name="course_slug" required>
+          {% for c in courses %}
+          <option value="{{ c.slug }}"{% if c.slug == selected_course %} selected{% endif %}>{{ c.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="field field-gap">
+        <label for="source_md">Markdown item bank</label>
+        <textarea class="ta" id="source_md" name="source_md" rows="14"
+          placeholder="## Week 1&#10;1. 2+2? a) 3 · b) 4 &#10003; · c) 5 · d) 6">{{ source_md }}</textarea>
+      </div>
+
+      <div class="field file-field field-gap-lg">
+        <label for="source_file">&hellip;or upload a .md file (optional, max 100 KB)</label>
+        <input id="source_file" name="source_file" type="file" accept=".md,text/markdown,text/plain">
+      </div>
+
+      <div class="form-actions">
+        <button id="preview-btn" class="btn-ghost" type="button">Preview parse</button>
+        <button class="btn blue" type="submit">{% if editing %}Save changes &#9656;{% else %}Create set &#9656;{% endif %}</button>
+      </div>
+      <div id="preview-out" class="preview-panel empty">Preview to check your set parses before saving.</div>
+    </form>
+  </div></section>
+</div>
+
+<script src="/static/set_form.js?v={{ asset_v }}"></script>
+</body></html>

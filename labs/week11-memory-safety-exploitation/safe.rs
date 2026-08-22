@@ -1,0 +1,49 @@
+// safe.rs — memory-safe Rust rewrite of the Week 11 vulnerable routine
+// =====================================================================
+// Sandbox/teaching only; for authorized lab use.
+//
+// This is the SAME logic as parse_input()/vulnerable() in vuln.c — read a line
+// of user input and report its length — but written in safe Rust. The CWE-121
+// stack-buffer-overflow and CWE-134 format-string bug classes are *impossible*
+// here, and we explain why inline.
+//
+// Build + run:
+//   rustc safe.rs && ./safe
+//   echo "AAAA...(any length)..." | ./safe     # never overflows, never crashes
+
+use std::io::{self, Read};
+
+/// Equivalent of parse_input() — but there is NO fixed-size raw buffer and NO
+/// unchecked copy.
+///
+/// Why the overflow (CWE-121 / CWE-787) cannot happen:
+///   * `String` is heap-backed and GROWS automatically; we never copy into a
+///     fixed 64-byte stack array, so there is nothing to overflow.
+///   * Even if we *did* use a fixed array, Rust inserts bounds checks on every
+///     index/slice access and panics safely instead of corrupting the stack.
+///   * There is no `strcpy`: ownership + the borrow checker forbid the kind of
+///     unbounded raw-pointer copy that makes the C version exploitable.
+fn parse_input(src: &str) -> usize {
+    // `src` is a &str: a (pointer, length) pair the compiler tracks. Length is
+    // always known, so "how many bytes?" never reads past the end.
+    src.chars().count()
+}
+
+fn main() {
+    // Read ALL of stdin into a growable String. No size cap to overflow.
+    let mut input = String::new();
+    io::stdin()
+        .read_to_string(&mut input)
+        .expect("failed to read stdin");
+
+    let line = input.trim_end_matches('\n');
+
+    let n = parse_input(line);
+
+    // Why the format-string bug (CWE-134) cannot happen:
+    //   Rust's `println!`/`print!` format string MUST be a compile-time string
+    //   literal; user data can only go into `{}` arguments, never become the
+    //   format itself. `println!(line)` with a runtime String simply does not
+    //   compile. So "%n"/"%x" in the input are printed literally, harmlessly.
+    println!("Hello, your input was {} characters long.", n);
+}

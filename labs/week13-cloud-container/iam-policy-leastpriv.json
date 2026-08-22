@@ -1,0 +1,29 @@
+{
+  "_comment": "Sandbox/teaching only; for authorized lab use. Least-privilege rewrite of iam-policy-insecure.json. Scopes actions to exactly what the app needs (read objects from ONE bucket prefix) on EXACTLY the resources it needs. Addresses OWASP A02 / CWE-732 / CWE-269. Replace 'lab-app-bucket' with your bucket name.",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadAppObjectsOnly",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::lab-app-bucket/app/*"
+    },
+    {
+      "Sid": "ListOnlyAppPrefix",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::lab-app-bucket",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "app/*"
+          ]
+        }
+      }
+    }
+  ]
+}

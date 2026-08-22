@@ -1,0 +1,2006 @@
+/* ============================================================
+   KOSEN·KMITL Live Quiz — shared stylesheet
+   Design: "Premium Academic / Editorial" + game energy
+   Answers are always coded by COLOR + SHAPE + TEXT (WCAG-AA).
+   ============================================================ */
+
+:root {
+  /* Brand (KMITL IDENTITY 2022 + KOSEN logo blue) */
+  --kmitl-orange: #E35205;
+  --kmitl-orange-deep: #B83E00;
+  --kosen-blue: #017BC4;
+  --kosen-blue-deep: #015C93;
+
+  /* Surface / ink */
+  --paper: #FBF9F5;
+  --paper-2: #FFFFFF;
+  --ink: #181512;
+  --ink-2: #3A342E;
+  --muted: #726A61;   /* 5.06:1 on paper */
+  --faint: #615948;   /* 6.59:1 on paper, 5.26:1 on the dark gradient — AA for informational text */
+  --decor: #A89F94;   /* decorative only (e.g. the "·" separator); never load-bearing text */
+  --hair: rgba(24, 21, 18, .14);
+  --hair-2: rgba(24, 21, 18, .08);
+
+  /* Answer hues (tiles only — chrome stays brand orange+blue) */
+  --a-red: #E21B3C;    --a-red-d: #B01430;
+  --a-blue: #1368CE;   --a-blue-d: #0E4E9E;
+  --a-yellow: #D89E00; --a-yellow-d: #A87A00;
+  --a-green: #26890C;  --a-green-d: #1B6408;
+  --yellow-ink: #3a2a00;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 18px 44px -22px rgba(24, 21, 18, .42), 0 2px 8px -3px rgba(24, 21, 18, .18);
+  --shadow-soft: 0 10px 30px -18px rgba(24, 21, 18, .5);
+}
+
+/* Self-hosted, not loaded from Google — font-src 'self' on every route means a
+   third-party font host was never usable here anyway. Inter (SIL OFL 1.1,
+   licence file shipped alongside it in this same directory) rather than the
+   system ui-sans-serif stack: one variable file, 100-900 in a single request,
+   no separate italic/weight files. Scoped to body.lx-page only, below, so the
+   three original game screens (host/play, zero screenshot coverage) render in
+   exactly the fonts they always have. */
+@font-face {
+  font-family: "InterVariable";
+  src: url("/static/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+html { margin: 0; }
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background:
+    radial-gradient(1400px 700px at 50% -12%, #F3F0E9 0%, rgba(243, 240, 233, 0) 60%),
+    linear-gradient(180deg, #EAE6DD 0%, #E4E0D6 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+[hidden] { display: none !important; }
+/* all answer-shape glyphs inherit their box color (color+shape+text coding) */
+.glyph, .pglyph, .bglyph, .rglyph, .pwait .shapes svg { fill: currentColor; }
+/* The <symbol> library at the top of the game screens. It carried
+   style="position:absolute" until the app-plane CSP (style-src 'self', no
+   'unsafe-inline') made every inline style attribute inert — measured, not
+   assumed: computed position read back as `static`. Same for the swatch and
+   answer-letter colours below: these classes exist because the policy is
+   correct and the markup had to come to it, not the other way round. */
+.glyph-defs { position: absolute; }
+
+/* The answer-shape swatches that appear OUTSIDE a game: the console's legend and
+   the player's waiting screen. `color` and `fill` both, because the two callers
+   differ — the console's paths are filled directly, the player's <use> glyphs
+   inherit `fill: currentColor` from the rule above. */
+.sw-red    { color: var(--a-red);    fill: var(--a-red); }
+.sw-blue   { color: var(--a-blue);   fill: var(--a-blue); }
+.sw-yellow { color: var(--a-yellow); fill: var(--a-yellow); }
+.sw-green  { color: var(--a-green);  fill: var(--a-green); }
+
+/* Spacing and sizing that used to ride on style="" attributes. Small, but the
+   policy does not grade on size: an inline style attribute is dropped whether it
+   moves a button 6px or colours the whole screen. */
+.set-new     { margin-top: 6px; }
+.field-gap   { margin-bottom: 16px; }
+.field-gap-lg{ margin-bottom: 18px; }
+.form-inline { display: inline; }
+.in-narrow   { max-width: 6rem; }
+.card-gap    { margin-top: 1rem; }
+/* display:contents so the wrapper adds no box of its own. [hidden] above is
+   !important, so hiding still wins over this. */
+.p-contents  { display: contents; }
+
+button { font-family: inherit; }
+/* The site-wide focus ring, and for most elements the ONLY one. At 60% alpha it
+   measured 2.39:1 on white, 2.27:1 on the tint band and 2.18:1 on the dark
+   tier-1 bar — all under WCAG 1.4.11's 3:1 minimum for a non-text indicator.
+   Solid --kosen-blue is 4.53:1 on white and 4.06:1 on the tint. The dedicated
+   .lx- rules already used the solid colour; this brings the fallback in line
+   rather than leaving keyboard users a ring they cannot see. */
+button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible, a:focus-visible {
+  outline: 3px solid var(--kosen-blue);
+  outline-offset: 2px;
+}
+/* On the near-black course switcher the blue ring is 1.6:1 — invisible. Light
+   ring there instead, same 3px so the affordance is identical. */
+.lx-tier1 a:focus-visible { outline-color: #F1EDE7; }
+
+/* ---------- brand masthead ---------- */
+.masthead {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap;
+}
+.mark { display: flex; flex-direction: column; gap: 3px; line-height: 1; text-decoration: none; }
+.mark .word { font: 700 clamp(20px, 2.3vw, 30px)/1 var(--serif); letter-spacing: .005em; }
+.mark .word .k { color: var(--kosen-blue); }
+.mark .word .m { color: var(--kmitl-orange); }
+.mark .word .dot { color: var(--decor); padding: 0 2px; }
+.mark .sub { font: 600 10px/1 var(--mono); letter-spacing: .34em; text-transform: uppercase; color: var(--muted); }
+
+.live { display: flex; align-items: center; gap: 8px; }
+.live .d {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--kosen-blue);
+  box-shadow: 0 0 0 4px rgba(1, 123, 196, .16); animation: pulse 1.8s ease-in-out infinite;
+}
+.live .t { font: 600 11px/1 var(--mono); letter-spacing: .24em; text-transform: uppercase; color: var(--kosen-blue-deep); }
+
+.pin-chip {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  padding: 9px 16px 11px; border: 1.5px solid var(--kmitl-orange);
+  border-radius: 12px; background: linear-gradient(180deg, #fff, #FFF7F2);
+  box-shadow: 0 6px 18px -12px rgba(227, 82, 5, .6);
+}
+.pin-chip .lab { font: 700 10px/1 var(--mono); letter-spacing: .30em; text-transform: uppercase; color: var(--kmitl-orange-deep); }
+.pin-chip .digits { font: 700 clamp(24px, 3vw, 34px)/1 var(--mono); letter-spacing: .16em; color: var(--kmitl-orange); font-variant-numeric: tabular-nums; }
+
+.drule { height: 0; border-top: 2px solid var(--kmitl-orange); position: relative; margin-top: 12px; }
+.drule::after { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: var(--kosen-blue); opacity: .55; }
+
+/* ---------- page scaffold ---------- */
+.stage {
+  max-width: 1360px; margin: 0 auto; min-height: 100vh;
+  padding: clamp(18px, 3vh, 36px) clamp(16px, 4vw, 52px) clamp(18px, 3vh, 40px);
+  display: flex; flex-direction: column; gap: clamp(12px, 2vh, 20px);
+  position: relative;
+}
+.stage::before {
+  content: ""; position: fixed; left: 0; top: 0; bottom: 0; width: 6px;
+  background: linear-gradient(180deg, var(--kmitl-orange), var(--kosen-blue));
+  opacity: .9; z-index: 10;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  appearance: none; border: none; cursor: pointer; border-radius: 14px;
+  padding: 16px 28px; font: 800 17px/1 var(--sans); letter-spacing: .02em;
+  color: #fff; background: linear-gradient(180deg, var(--kmitl-orange-deep), #9A3600);
+  box-shadow: 0 14px 28px -12px rgba(227, 82, 5, .65), inset 0 1px 0 rgba(255, 255, 255, .3);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.btn:active { transform: translateY(1px) scale(.99); box-shadow: 0 6px 14px -8px rgba(227, 82, 5, .55); }
+.btn:disabled {
+  cursor: default; color: #fff; background: #C9C2B8; box-shadow: none; transform: none; filter: none;
+}
+.btn.blue {
+  background: linear-gradient(180deg, var(--kosen-blue-deep), #014A78);
+  box-shadow: 0 14px 28px -12px rgba(1, 123, 196, .6), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.btn-ghost {
+  appearance: none; cursor: pointer; border-radius: 10px; padding: 10px 16px;
+  font: 700 13px/1 var(--sans); color: var(--kosen-blue-deep);
+  background: transparent; border: 1.5px solid rgba(1, 123, 196, .45);
+  transition: background .12s ease;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-ghost:hover { background: rgba(1, 123, 196, .08); }
+
+/* ---------- host: setup ---------- */
+.setup-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+.setup-card {
+  width: min(560px, 94vw); background: var(--paper); border: 1px solid var(--hair);
+  border-radius: 20px; box-shadow: var(--shadow-card); padding: 36px 38px 38px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.setup-card h1 { margin: 0; font: 600 34px/1.15 var(--serif); }
+.setup-card .lead { margin: -10px 0 0; font: 400 15px/1.55 var(--sans); color: var(--muted); }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font: 700 11px/1 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--ink-2); }
+.select-wrap { position: relative; }
+.select-wrap select {
+  appearance: none; width: 100%; padding: 15px 44px 15px 16px;
+  font: 600 17px/1.2 var(--sans); color: var(--ink);
+  background: var(--paper-2); border: 1.5px solid var(--hair); border-radius: 12px;
+}
+.select-wrap::after {
+  content: ""; position: absolute; right: 16px; top: 50%; width: 10px; height: 10px;
+  border-right: 2.5px solid var(--kmitl-orange); border-bottom: 2.5px solid var(--kmitl-orange);
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.empty-banks {
+  padding: 14px 16px; border-radius: 12px; border: 1.5px solid rgba(227, 82, 5, .4);
+  background: #FFF4EC; font: 500 14px/1.5 var(--sans); color: var(--ink-2);
+}
+.empty-banks code { font: 600 12px var(--mono); color: var(--kmitl-orange-deep); }
+
+/* ---------- host: meta row / timer ---------- */
+.qmeta { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.progress { display: flex; flex-direction: column; gap: 11px; min-width: 220px; }
+.progress .plabel { font: 600 15px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.progress .plabel b { color: var(--kmitl-orange-deep); font-weight: 800; }
+.progress .plabel .cat { color: var(--faint); font-weight: 600; margin-left: 10px; text-transform: none; letter-spacing: .02em; }
+.segs { display: flex; gap: 6px; }
+.segs i { flex: 1; max-width: 34px; height: 6px; border-radius: 3px; background: var(--hair); }
+.segs i.on { background: var(--kmitl-orange); }
+.segs i.cur { background: var(--kmitl-orange); box-shadow: 0 0 0 3px rgba(227, 82, 5, .18); }
+
+.status { display: flex; align-items: center; gap: 26px; }
+.answered { text-align: right; line-height: 1; }
+.answered .n { font: 800 30px/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.answered .l { display: block; margin-top: 6px; font: 600 11px/1 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+
+.timer { position: relative; width: 96px; height: 96px; flex: none; }
+.timer svg { width: 96px; height: 96px; transform: rotate(-90deg); }
+.timer .track { fill: none; stroke: var(--hair); stroke-width: 9; }
+.timer .arc {
+  fill: none; stroke: var(--kmitl-orange); stroke-width: 9; stroke-linecap: round;
+  stroke-dasharray: 276.46; stroke-dashoffset: 0;
+}
+.timer.low .arc { stroke: var(--a-red); }
+.timer.low { animation: heartbeat .9s ease-in-out infinite; }
+.timer .cap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.timer .cap .sec { font: 700 32px/1 var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.timer .cap .of { margin-top: 3px; font: 600 9px/1 var(--mono); letter-spacing: .16em; color: var(--muted); }
+
+/* ---------- host: stem + answers ---------- */
+.stem {
+  font: 600 clamp(30px, 4.3vw, 52px)/1.14 var(--serif); color: var(--ink);
+  letter-spacing: .002em; margin: 2px 0; max-width: 1100px; text-wrap: balance;
+}
+
+/* `--o` is the answer option's identity colour, read by every rule below and by
+   the player tiles. It used to be handed to each element as an inline
+   style="--o:var(--a-red)" written by host.js/player.js — and the app-plane CSP
+   (style-src 'self', with no 'unsafe-inline') drops inline style attributes, so
+   from the day that policy shipped the projector showed four uncoloured shapes
+   and every phone four grey tiles. The colour class was already on the element;
+   only the variable was inline. This is that variable, moved to the class. */
+.opt.red,    .bar.red,    .ptile.red,    .rglyph.red    { --o: var(--a-red); }
+.opt.blue,   .bar.blue,   .ptile.blue,   .rglyph.blue   { --o: var(--a-blue); }
+.opt.yellow, .bar.yellow, .ptile.yellow, .rglyph.yellow { --o: var(--a-yellow); }
+.opt.green,  .bar.green,  .ptile.green,  .rglyph.green  { --o: var(--a-green); }
+
+.answers {
+  flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; min-height: 0;
+  align-content: stretch;
+}
+.opt {
+  position: relative; display: flex; align-items: stretch; min-height: 118px;
+  background: var(--paper-2); border: 1.5px solid var(--o);
+  border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-soft);
+}
+.opt .band {
+  flex: none; width: clamp(90px, 10vw, 150px); background: var(--o);
+  display: flex; align-items: center; justify-content: center;
+}
+.opt .band .glyph { width: clamp(40px, 4.6vw, 62px); height: clamp(40px, 4.6vw, 62px); color: #fff; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .22)); }
+.opt.yellow .band .glyph { color: var(--yellow-ink); }
+.opt .body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 14px clamp(14px, 2vw, 26px); min-width: 0; }
+.opt .otag { font: 700 11px/1 var(--mono); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+.opt .otxt { font: 600 clamp(19px, 2.3vw, 31px)/1.12 var(--sans); color: var(--ink); letter-spacing: -.01em; overflow-wrap: anywhere; }
+.opt .ghost {
+  position: absolute; right: 16px; bottom: -14px; font: 800 96px/1 var(--serif);
+  color: var(--o); opacity: .08; pointer-events: none;
+}
+
+/* ---------- host: lobby ---------- */
+.lobby {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px; text-align: center;
+}
+.lobby .join-line { font: 600 clamp(22px, 2.6vw, 34px)/1.3 var(--serif); color: var(--ink); }
+.lobby .join-line code {
+  font: 700 clamp(20px, 2.4vw, 30px) var(--mono); color: var(--kosen-blue-deep);
+  background: rgba(1, 123, 196, .08); padding: 3px 12px; border-radius: 10px;
+}
+.lobby .pcount { display: flex; align-items: baseline; gap: 14px; }
+.lobby .pcount .n { font: 800 clamp(54px, 7vw, 88px)/1 var(--sans); color: var(--kmitl-orange); font-variant-numeric: tabular-nums; }
+.lobby .pcount .l { font: 600 13px/1 var(--mono); letter-spacing: .26em; text-transform: uppercase; color: var(--muted); }
+.roster { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 900px; }
+.roster .chip {
+  font: 700 14px/1 var(--mono); color: var(--ink-2);
+  background: var(--paper-2); border: 1px solid var(--hair); border-radius: 999px;
+  padding: 8px 14px; box-shadow: var(--shadow-soft);
+  animation: pop-in .3s cubic-bezier(.3, 1.4, .5, 1) both;
+}
+
+/* ---------- host: results ---------- */
+.reveal {
+  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  padding: 16px 22px; border-radius: 16px;
+  background: linear-gradient(180deg, #fff, #F7FAFE);
+  border: 1.5px solid rgba(1, 123, 196, .35);
+  box-shadow: 0 20px 44px -26px rgba(1, 123, 196, .55), var(--shadow-soft);
+  animation: rise-in .5s cubic-bezier(.3, 1.2, .4, 1) both;
+}
+.reveal .rglyph { width: 56px; height: 56px; flex: none; color: var(--o, var(--kosen-blue)); filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .18)); }
+.reveal .rb-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.reveal .rb-k { font: 700 11px/1 var(--mono); letter-spacing: .26em; text-transform: uppercase; color: var(--kosen-blue-deep); }
+.reveal .rb-a { font: 600 clamp(22px, 2.6vw, 34px)/1.1 var(--serif); color: var(--ink); }
+.reveal .rb-pill {
+  margin-left: auto; flex: none; display: flex; align-items: center; gap: 9px;
+  padding: 11px 18px; border-radius: 999px; background: var(--kmitl-orange-deep);
+  box-shadow: 0 10px 22px -10px rgba(227, 82, 5, .7);
+}
+.reveal .rb-pill .ck { width: 20px; height: 20px; color: #fff; }
+.reveal .rb-pill .lab { font: 800 14px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: #fff; }
+
+.results-grid { flex: 1; display: grid; grid-template-columns: 1.55fr 1fr; gap: clamp(18px, 3vw, 34px); min-height: 0; }
+.col-h {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font: 600 13px/1 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+  padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--hair);
+}
+.col-h .accent { color: var(--kmitl-orange-deep); }
+
+.bars { display: flex; flex-direction: column; gap: 17px; }
+.bar { display: flex; align-items: center; gap: 15px; }
+.bar .bglyph { width: 30px; height: 30px; flex: none; color: var(--o); }
+.bar .name { flex: none; width: clamp(150px, 18vw, 242px); font: 600 17px/1.15 var(--sans); color: var(--ink); letter-spacing: -.01em; overflow-wrap: anywhere; }
+.bar .track { position: relative; flex: 1; height: 38px; border-radius: 9px; background: rgba(24, 21, 18, .06); overflow: hidden; }
+.bar .fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--w, 0%);
+  background: var(--o); border-radius: 9px;
+  animation: grow 1.05s cubic-bezier(.4, 0, .15, 1) both;
+}
+.bar .end { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.bar .cnt { min-width: 34px; text-align: right; font: 800 26px/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.bar.correct .track { box-shadow: 0 0 0 2px var(--kmitl-orange), 0 12px 24px -14px rgba(227, 82, 5, .55); }
+.bar.correct .name { color: var(--kmitl-orange-deep); font-weight: 800; }
+.bar.correct .cnt { color: var(--kmitl-orange-deep); }
+.bar .ctag {
+  flex: none; display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 9px; border-radius: 999px; background: rgba(227, 82, 5, .12);
+  font: 800 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--kmitl-orange-deep);
+}
+.bar .ctag .ck { width: 12px; height: 12px; }
+
+.lb { display: flex; flex-direction: column; gap: 9px; }
+.lrow {
+  display: flex; align-items: center; gap: 14px;
+  padding: 11px 14px; border-radius: 12px; background: var(--paper-2);
+  border: 1px solid var(--hair-2);
+}
+.lrow .rk {
+  width: 30px; height: 30px; flex: none; border-radius: 8px; border: 1.5px solid var(--hair);
+  display: flex; align-items: center; justify-content: center;
+  font: 800 14px/1 var(--mono); color: var(--muted);
+}
+.lrow.first .rk { background: var(--kmitl-orange-deep); border-color: var(--kmitl-orange-deep); color: #fff; }
+.lrow .nm { font: 600 18px/1 var(--mono); color: var(--ink); letter-spacing: .01em; overflow-wrap: anywhere; }
+.lrow .pts { margin-left: auto; font: 700 19px/1 var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* ---------- host: podium / finished ---------- */
+.finished { flex: 1; display: flex; flex-direction: column; gap: 26px; min-height: 0; }
+.fin-title { text-align: center; font: 600 clamp(30px, 4vw, 46px)/1.1 var(--serif); margin: 4px 0 0; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 18px; }
+.pod { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(240px, 28vw); }
+.pod .pnm { font: 700 clamp(15px, 1.6vw, 20px)/1.1 var(--mono); color: var(--ink); text-align: center; overflow-wrap: anywhere; }
+.pod .ppts { font: 800 clamp(16px, 1.8vw, 22px)/1 var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pod .block {
+  width: 100%; border-radius: 14px 14px 0 0; display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 12px; font: 800 26px/1 var(--serif); color: #fff;
+  box-shadow: var(--shadow-soft); animation: podium-rise .7s cubic-bezier(.3, 1.2, .4, 1) both;
+}
+.pod.p1 .block { height: clamp(120px, 20vh, 190px); background: linear-gradient(180deg, #F06120, var(--kmitl-orange-deep)); animation-delay: .25s; }
+.pod.p2 .block { height: clamp(84px, 14vh, 130px); background: linear-gradient(180deg, #1D93DD, var(--kosen-blue-deep)); animation-delay: .12s; }
+.pod.p3 .block { height: clamp(60px, 10vh, 96px); background: linear-gradient(180deg, #8B8175, #6b6357); animation-delay: 0s; }
+.fin-rest { max-width: 720px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; overflow: auto; min-height: 0; }
+
+/* ---------- host: footer / next ---------- */
+.host-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: auto; }
+.foot-hint { font: 500 12px/1.5 var(--mono); letter-spacing: .06em; color: var(--faint); text-transform: uppercase; }
+
+/* ---------- player ---------- */
+.pwrap {
+  max-width: 560px; margin: 0 auto; min-height: 100vh; min-height: 100dvh;
+  display: flex; flex-direction: column; padding: 0; position: relative;
+}
+
+.pjoin { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px 22px 40px; gap: 26px; }
+.pjoin .mark { align-items: center; text-align: center; }
+.join-card {
+  background: var(--paper); border: 1px solid var(--hair); border-radius: 20px;
+  box-shadow: var(--shadow-card); padding: 28px 26px 30px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.join-card h1 { margin: 0; font: 600 28px/1.15 var(--serif); }
+.join-card input {
+  width: 100%; padding: 16px; border: 1.5px solid var(--hair); border-radius: 12px;
+  font: 600 18px/1.2 var(--sans); color: var(--ink); background: var(--paper-2);
+}
+.join-card input#pin-input { font: 700 24px var(--mono); letter-spacing: .3em; text-align: center; }
+.join-err { font: 600 14px/1.4 var(--sans); color: var(--a-red-d); min-height: 20px; }
+.pdpa { font: 500 12px/1.5 var(--sans); color: var(--muted); }
+
+.pgame { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.pstatus { padding: 18px 18px 14px; border-bottom: 1px solid var(--hair); background: var(--paper); }
+.pstatus .prow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.pstatus .q { font: 700 13px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.pstatus .q b { color: var(--kmitl-orange-deep); }
+.pstatus .brand { font: 700 14px/1 var(--serif); }
+.pstatus .brand .k { color: var(--kosen-blue); }
+.pstatus .brand .m { color: var(--kmitl-orange); }
+.pstatus .brand .dot { color: var(--decor); }
+.ptimer { display: flex; align-items: center; gap: 12px; }
+.ptimer .track { flex: 1; height: 10px; border-radius: 6px; background: rgba(24, 21, 18, .09); overflow: hidden; }
+.ptimer .fill { height: 100%; width: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--kmitl-orange), #F5792F); }
+.ptimer.low .fill { background: linear-gradient(90deg, var(--a-red-d), var(--a-red)); }
+.ptimer .sec { font: 700 17px/1 var(--mono); color: var(--kmitl-orange-deep); font-variant-numeric: tabular-nums; min-width: 26px; text-align: right; }
+
+.pstem { padding: 14px 18px 0; font: 600 18px/1.35 var(--serif); color: var(--ink); }
+
+.ptiles { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 16px 12px; min-height: 0; }
+.ptile {
+  position: relative; border: none; cursor: pointer; border-radius: 20px; background: var(--o);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  box-shadow: 0 14px 26px -14px var(--o), inset 0 1px 0 rgba(255, 255, 255, .25);
+  color: #fff; overflow: hidden; padding: 14px 10px; min-height: 120px;
+  transition: transform .1s ease, box-shadow .1s ease, opacity .25s ease, filter .25s ease;
+}
+.ptile::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .10)); pointer-events: none; }
+.ptile:active { transform: scale(.96); box-shadow: 0 6px 14px -10px var(--o), inset 0 1px 0 rgba(255, 255, 255, .25); }
+.ptile .pglyph { width: 46px; height: 46px; color: #fff; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .28)); z-index: 1; }
+.ptile .pl { font: 700 16px/1.15 var(--sans); text-align: center; z-index: 1; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.ptile.yellow { color: var(--yellow-ink); }
+.ptile.yellow .pglyph { color: var(--yellow-ink); }
+.ptile.picked { box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--o), 0 14px 26px -12px var(--o); }
+.ptile.picked::before {
+  content: "✓"; position: absolute; top: 8px; right: 12px; z-index: 2;
+  font: 800 22px/1 var(--sans); color: inherit;
+}
+.ptile.dim { opacity: .32; filter: saturate(.55); }
+.ptile.reveal-correct { box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--kmitl-orange), 0 16px 30px -12px rgba(227, 82, 5, .6); }
+.ptile:disabled { cursor: default; }
+
+.plock {
+  margin: 0 16px; padding: 12px 16px; border-radius: 12px; text-align: center;
+  font: 700 14px/1.3 var(--sans); color: var(--kosen-blue-deep);
+  background: rgba(1, 123, 196, .08); border: 1.5px solid rgba(1, 123, 196, .3);
+}
+
+.pfeedback {
+  margin: 0 16px; padding: 16px; border-radius: 14px; text-align: center;
+  font: 800 20px/1.2 var(--sans); animation: pop-in .35s cubic-bezier(.3, 1.4, .5, 1) both;
+}
+.pfeedback.good { color: #fff; background: linear-gradient(180deg, #2FA412, var(--a-green-d)); box-shadow: 0 14px 28px -14px rgba(38, 137, 12, .7); }
+.pfeedback.bad { color: #fff; background: linear-gradient(180deg, var(--a-red), var(--a-red-d)); box-shadow: 0 14px 28px -14px rgba(226, 27, 60, .7); }
+.pfeedback .sub { display: block; margin-top: 5px; font: 600 13px/1.3 var(--sans); opacity: .92; }
+
+.pboard { padding: 14px 16px 6px; }
+.pboard .col-h { margin-bottom: 10px; }
+
+.pwait { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 30px 24px; }
+.pwait .big { font: 600 26px/1.25 var(--serif); }
+.pwait .sub { font: 500 15px/1.5 var(--sans); color: var(--muted); }
+.pwait .warn { font: 600 13px/1.5 var(--sans); color: var(--a-yellow-d); max-width: 32ch; }
+.pwait .shapes { display: flex; gap: 14px; }
+.pwait .shapes svg { width: 34px; height: 34px; animation: bob 2.4s ease-in-out infinite; }
+.pwait .shapes svg:nth-child(2) { animation-delay: .3s; }
+.pwait .shapes svg:nth-child(3) { animation-delay: .6s; }
+.pwait .shapes svg:nth-child(4) { animation-delay: .9s; }
+
+.pfooter {
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--hair);
+  background: linear-gradient(180deg, #fff, var(--paper));
+  display: flex; align-items: center; gap: 12px;
+}
+.pfooter .av {
+  width: 42px; height: 42px; flex: none; border-radius: 12px;
+  background: linear-gradient(145deg, var(--kosen-blue), var(--kosen-blue-deep));
+  display: flex; align-items: center; justify-content: center;
+  font: 800 18px/1 var(--sans); color: #fff; text-transform: uppercase;
+  box-shadow: 0 8px 18px -10px rgba(1, 123, 196, .8);
+}
+.pfooter .pf-txt { display: flex; flex-direction: column; gap: 3px; line-height: 1; min-width: 0; }
+.pfooter .pf-l { font: 600 10px/1 var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.pfooter .pf-name { font: 700 17px/1 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.pfooter .pf-right { margin-left: auto; text-align: right; line-height: 1; }
+.pfooter .pf-pts { font: 800 20px/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; }
+.pfooter .pf-pts small { font: 600 11px var(--mono); color: var(--muted); }
+.pfooter .pf-rank { margin-top: 5px; display: inline-block; font: 800 11px/1 var(--mono); letter-spacing: .1em; color: #fff; background: var(--kmitl-orange-deep); padding: 5px 9px; border-radius: 999px; }
+
+/* ---------- confetti ---------- */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.confetti i {
+  position: absolute; top: -4vh; width: 10px; height: 14px; border-radius: 2px;
+  animation: fall linear both;
+}
+
+/* ---------- reconnect banner ---------- */
+.netbar {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60;
+  padding: 10px 18px; border-radius: 999px; font: 700 13px/1 var(--sans); color: #fff;
+  background: var(--ink-2); box-shadow: 0 14px 30px -12px rgba(0, 0, 0, .5);
+}
+
+/* ---------- motion ---------- */
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 4px rgba(1, 123, 196, .16); } 50% { box-shadow: 0 0 0 7px rgba(1, 123, 196, .04); } }
+@keyframes grow { from { width: 0; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes podium-rise { from { transform: translateY(60%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+@keyframes fall {
+  from { transform: translateY(-6vh) rotate(0deg); }
+  to { transform: translateY(106vh) rotate(720deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================
+   PLATFORM — teacher auth + console (same editorial system)
+   ============================================================ */
+
+/* ---------- auth (login / register) refinements ---------- */
+.join-card .lead { margin: -8px 0 2px; font: 400 14px/1.55 var(--sans); color: var(--muted); }
+.join-card .field + .field { margin-top: 2px; }
+.pdpa a { color: var(--kosen-blue-deep); font-weight: 700; text-decoration: none; border-bottom: 1.5px solid rgba(1, 123, 196, .32); }
+.pdpa a:hover { border-bottom-color: var(--kosen-blue-deep); }
+.pjoin .drule { width: 100%; margin: 2px 0 -6px; }
+
+/* ---------- console: layout ---------- */
+.console-body { width: 100%; max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 26px); }
+.console-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px 24px; flex-wrap: wrap; }
+.console-top .ct-txt { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.console-top h1 { margin: 0; font: 600 clamp(28px, 3.4vw, 38px)/1.1 var(--serif); color: var(--ink); }
+.console-top .lead { margin: 0; max-width: 560px; font: 400 15px/1.55 var(--sans); color: var(--muted); }
+.console-top .btn { flex: none; text-decoration: none; }
+
+/* ---------- console: set cards ---------- */
+.set-list { display: flex; flex-direction: column; gap: 14px; }
+.set-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  padding: 18px 22px; border: 1px solid var(--hair); border-radius: 16px;
+  background: linear-gradient(180deg, var(--paper-2), var(--paper));
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease;
+}
+.set-card:hover { box-shadow: var(--shadow-card); border-color: rgba(1, 123, 196, .34); transform: translateY(-1px); }
+.set-main { display: flex; flex-direction: column; gap: 9px; min-width: min(100%, 240px); flex: 1; }
+.set-title { font: 600 clamp(19px, 2vw, 23px)/1.2 var(--serif); color: var(--ink); overflow-wrap: anywhere; }
+.set-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.set-count {
+  font: 700 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--kmitl-orange-deep); background: rgba(227, 82, 5, .10);
+  border: 1px solid rgba(227, 82, 5, .18); padding: 6px 10px; border-radius: 999px;
+}
+.topic-chip {
+  font: 600 12px/1 var(--sans); color: var(--kosen-blue-deep);
+  background: rgba(1, 123, 196, .08); border: 1px solid rgba(1, 123, 196, .16);
+  padding: 6px 11px; border-radius: 999px; overflow-wrap: anywhere;
+}
+.topic-chip.more { color: var(--muted); background: transparent; border-color: transparent; }
+.set-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+
+/* compact select (branded chevron) + small buttons for the action cluster */
+.start-form { display: flex; align-items: center; gap: 8px; }
+.select-sm { position: relative; display: inline-flex; }
+.select-sm select {
+  appearance: none; padding: 11px 40px 11px 14px; max-width: 220px;
+  font: 600 14px/1 var(--sans); color: var(--ink);
+  background: var(--paper-2); border: 1.5px solid var(--hair); border-radius: 10px;
+}
+.select-sm::after {
+  content: ""; position: absolute; right: 15px; top: 50%; width: 8px; height: 8px;
+  border-right: 2.5px solid var(--kmitl-orange); border-bottom: 2.5px solid var(--kmitl-orange);
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+.btn.btn-sm { padding: 11px 18px; font-size: 14px; border-radius: 10px; box-shadow: 0 10px 20px -12px rgba(1, 123, 196, .55), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.btn-ghost.btn-sm { padding: 10px 15px; }
+.btn-ghost.danger { color: var(--a-red-d); border-color: rgba(226, 27, 60, .4); }
+.btn-ghost.danger:hover { background: rgba(226, 27, 60, .08); }
+
+/* ---------- console: empty state ---------- */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  padding: 46px 26px; border: 1.5px dashed var(--hair); border-radius: 18px;
+  background: rgba(255, 255, 255, .40);
+}
+.empty-state .es-shapes { display: flex; gap: 12px; margin-bottom: 4px; }
+.empty-state .es-shapes svg { width: 26px; height: 26px; }
+.empty-state .es-title { font: 600 21px/1.2 var(--serif); color: var(--ink-2); }
+.empty-state .es-sub { font: 500 14px/1.5 var(--sans); color: var(--muted); max-width: 380px; }
+
+/* ---------- set form: fields + preview ---------- */
+.setup-card.wide { width: min(760px, 94vw); }
+.inp {
+  width: 100%; padding: 14px 16px; font: 600 16px/1.25 var(--sans); color: var(--ink);
+  background: var(--paper-2); border: 1.5px solid var(--hair); border-radius: 12px;
+}
+.ta {
+  width: 100%; padding: 14px 16px; font: 500 14px/1.6 var(--mono); color: var(--ink);
+  background: var(--paper-2); border: 1.5px solid var(--hair); border-radius: 12px; resize: vertical;
+}
+.inp:focus, .ta:focus { border-color: rgba(1, 123, 196, .5); }
+.file-field input[type="file"] { font: 500 13px/1.4 var(--sans); color: var(--ink-2); }
+.file-field input[type="file"]::file-selector-button {
+  appearance: none; cursor: pointer; margin-right: 12px; padding: 9px 14px; border-radius: 9px;
+  font: 700 12px/1 var(--sans); color: var(--kosen-blue-deep);
+  background: transparent; border: 1.5px solid rgba(1, 123, 196, .45);
+}
+.form-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.preview-panel {
+  margin-top: 8px; padding: 14px 16px; border-radius: 12px;
+  border: 1.5px solid var(--hair); background: rgba(1, 123, 196, .045);
+  font: 500 14px/1.6 var(--sans); color: var(--ink-2);
+}
+.preview-panel.empty { color: var(--muted); font-style: italic; }
+.preview-panel .pv-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
+.preview-panel .pv-row .pv-t { overflow-wrap: anywhere; min-width: 0; }
+.preview-panel .pv-row .pv-c { flex: none; font: 700 12px/1 var(--mono); letter-spacing: .1em; color: var(--kosen-blue-deep); }
+.preview-panel .pv-total { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--hair); font: 800 14px/1.3 var(--sans); color: var(--ink); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .answers { grid-template-columns: 1fr; }
+  .results-grid { grid-template-columns: 1fr; }
+  .opt { min-height: 84px; }
+  .stage::before { width: 4px; }
+  .set-card { align-items: stretch; }
+  .set-actions { width: 100%; }
+  .select-sm, .select-sm select { flex: 1; max-width: none; width: 100%; }
+  .start-form { flex: 1; min-width: 100%; }
+}
+@media (max-height: 720px) {
+  .timer, .timer svg { width: 76px; height: 76px; }
+  .timer .cap .sec { font-size: 26px; }
+}
+
+/* ---------- home: the front door ----------------------------------------
+   The bare hostname used to render the live-game PIN box, so a student who
+   typed it had no route to the 19 weeks of material, the graded quiz, the
+   hand-in or the arena. This page exists to answer one question — "where do I
+   go?" — and to be honest about what each destination COSTS: a code, a PIN, or
+   the class VPN. A student who reaches a page only to discover they needed a
+   slip they left at home has been failed by the front door, not by the page. */
+.home-sec { display: flex; flex-direction: column; gap: 10px; }
+.home-sec > h2 {
+  margin: 0; font: 700 12px/1 var(--mono); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--faint);
+}
+.home-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.home-item a {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 13px 15px; border: 1px solid var(--hair); border-radius: 13px;
+  background: var(--paper-2); text-decoration: none; color: var(--ink);
+  transition: border-color .12s ease, transform .12s ease;
+}
+.home-item a:hover { border-color: var(--kosen-blue); transform: translateY(-1px); }
+.home-item a:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: 2px; }
+.home-item b { font: 600 17px/1.25 var(--serif); }
+.home-item .what { font: 400 13px/1.5 var(--sans); color: var(--muted); flex: 1 1 100%; }
+/* What it costs to walk through the door. Deliberately not a colour-only cue. */
+.home-item .need {
+  font: 700 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 7px; border-radius: 6px; white-space: nowrap;
+  color: var(--kmitl-orange-deep); background: rgba(227, 82, 5, .09);
+}
+.home-item .need.free { color: var(--faint); background: rgba(97, 89, 72, .09); }
+
+/* The unit number, in a fixed gutter so 19 of them align into one column the eye
+   can run straight down. Subordinate to the title on purpose: a student scans for
+   "Injection", not for "4". Tabular figures so 1 and 19 occupy the same width. */
+.wk-n {
+  flex: none; min-width: 30px; text-align: right;
+  font: 600 13px/1.3 var(--mono); font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+/* STAKES — "this is marked". A separate vocabulary from `.need`, which says what
+   it costs to get in. They were one orange token, so orange meant "bring your
+   slip" on the front page and "this is graded" on the course page — and /play,
+   which is explicitly ungraded, wore it. One token, two meanings, on two pages a
+   student crosses in a single session.
+   The word is the signal; the colour only reinforces it. */
+.stakes {
+  font: 700 11px/1 var(--mono); letter-spacing: .09em;
+  padding: 4px 7px; border-radius: 6px; white-space: nowrap;
+  color: #fff; background: var(--kmitl-orange-deep);
+}
+
+
+/* ============================================================
+   Course-platform layer — the front door, catalog and course page.
+   Namespaced .lx-* and its own --lx-* tokens on purpose: this file is
+   SHARED with the live-quiz game screens (/host, /play), which no test
+   covers for appearance. Redefining a token above would restyle a working
+   game silently. Verified: 0 collisions with the 23 existing tokens and
+   the 80 existing classes.
+   ============================================================ */
+/* ==========================================================================
+   layer.css — APPEND THIS FILE VERBATIM TO THE END OF static/style.css.
+
+   INSTALL, stated once so there is no ambiguity: this is NOT a second
+   stylesheet. base.html links only /static/style.css, and this layer depends on
+   that file having already run — it reads style.css's tokens and inherits its
+   global :focus-visible ring and its blanket prefers-reduced-motion rule.
+   Append order matters: several rules here win on source order at equal
+   specificity, deliberately. (If you would rather ship it as
+   static/learn.css, that works too — but then base.html must link that exact
+   basename, or the page renders unstyled and nothing tells you.)
+
+   ── THE RULES THIS LAYER OBEYS (all mechanically checkable) ────────────────
+   1. NO :root BLOCK. Not one. style.css's 27 tokens are consumed by host.html,
+      player.html, host.js and player.js. Redefining one silently restyles a
+      working, verified game and no test would catch it. Tokens here live on
+      .lx-page and are all prefixed --lx-.
+   2. NEVER declares --o or --w. Those are NOT :root tokens. `--o` is declared
+      once, per answer-colour class, in the game section above; `--w` is set at
+      runtime by host.js through the CSSOM. Declaring either at any scope here
+      would hand every game tile a silent fallback colour or width.
+   3. EVERY SELECTOR CONTAINS AT LEAST ONE .lx- CLASS. That is the proof that
+      no rule here can match anything on /host or /play: those templates and
+      their JS contain no `lx-` string at all, so the intersection is empty.
+   4. Redefines no existing class. The one place it reaches a shared class name
+      (.lx-logo .word) is ancestor-qualified by an .lx- class, so .mark on
+      host.html and player.html is untouched. Nothing is moved or deleted, so
+      .home-list / .home-item / .what stay defined for error.html, which
+      consumes them.
+   5. Reading existing tokens is safe and desirable, and this layer does it
+      everywhere: --ink, --muted, --faint, --hair, --sans and the four brand
+      colours. Only REDEFINING them is forbidden.
+
+   ── DESIGN ─────────────────────────────────────────────────────────────────
+   A faithful port of Coursera's visual language onto KOSEN-KMITL's identity.
+   One family (var(--sans) — self-hosted InterVariable.woff2, scoped to
+   .lx-page below so host.html/player.html keep the system stack they always
+   had; font-src 'self' is what makes self-hosting legal here at all), three
+   weights (400/600/700 as instances of the variable font, not separate
+   files), a spacing ramp of 4/8/12/16/24/32/48/64, nested radius
+   16 outer / 8 inner / 50px pill, one hairline at rest with shadow only on
+   hover, whitespace between sections and a tint band between regions. The
+   accent is under 2% of the pixels.
+
+   NOT Coursera's palette. Coursera blue #0056D2 appears nowhere, and neither
+   does its cool neutral ramp (#F2F5FA / #48546E / #C1CBDB) — those fight the
+   warm KOSEN-KMITL paper. Structure is borrowed; not one hex value is.
+
+   ── COLOUR IS NEVER THE ONLY SIGNAL ────────────────────────────────────────
+   Contrast ratios are measured and recorded inline, in the house style already
+   set at style.css:19-20. Where a state is carried by colour it is ALSO carried
+   by a WORD (GRADED, LAB, Hide/Show), by WEIGHT (the active course), by
+   FILL-vs-OUTLINE (graded flag vs access pill) or by SHAPE. The pages are
+   readable in greyscale, in Windows high contrast, and they still say
+   everything they need to if the stylesheet fails to load entirely.
+
+   ── BREAKPOINTS (mobile first; the base rules ARE the phone) ────────────────
+      base    <720   one column. Cards are ROWS. Unit rows are 2-row grids.
+                     Course switcher hidden — every course is still one tap
+                     away via Courses -> /learn, which is exactly what Coursera
+                     does with its own utility row.
+      720            unit rows become a 3-column grid with a tabular unit gutter
+      768            two-up card ladder, gutter 16 -> 32, course switcher back
+      1128           three-up ladder, gutter -> 48; course cards become TILES
+      1440           four-up ladder
+   Only the top two type steps shrink on a phone. Body, metadata and card
+   titles are identical at 390px and 1440px — students read this in class.
+   ========================================================================== */
+
+/* ---------- tokens (namespaced; NOT :root) ---------- */
+.lx-page {
+  /* spacing ramp — Coursera's steps, measured */
+  --lx-sp-1: 4px;   --lx-sp-2: 8px;   --lx-sp-3: 12px;  --lx-sp-4: 16px;
+  --lx-sp-5: 24px;  --lx-sp-6: 32px;  --lx-sp-7: 48px;  --lx-sp-8: 64px;
+  /* radius — the nested rhythm 16 outer / 8 inner / 50 pill */
+  --lx-r-card: 16px; --lx-r-in: 8px; --lx-r-sm: 4px; --lx-r-pill: 50px;
+
+  --lx-surface: #FFFFFF;
+  --lx-ground:  #F5F2EC;  /* warm tint band. --ink on it 16.4:1, --faint 6.2:1 */
+  --lx-hover:   #F7F4EF;  /* ghost-row hover only; never carries meaning */
+
+  /* the three-level ink ramp, all measured on --lx-surface */
+  --lx-ink-1: var(--ink);     /* #181512 — 18.9:1 */
+  --lx-ink-2: var(--muted);   /* #726A61 —  5.31:1 ✓ AA */
+  --lx-ink-3: var(--faint);   /* #615948 —  6.93:1 ✓ AA */
+  --lx-stroke: var(--hair);   /* rgba(24,21,18,.14) */
+
+  --lx-gutter: 16px;
+  --lx-max: 1440px;
+  --lx-read: 900px;           /* the unit list's own reading measure */
+
+  /* NOT an --lx- token: this REDEFINES the house --sans, which rule 5 above
+     forbids AT :root. This is not that — the redefinition is scoped to
+     .lx-page, a class that exists nowhere in host.html or player.html, so
+     their `var(--sans)` lookups never reach this selector and keep resolving
+     the :root system stack exactly as before. A deliberate, scoped exception,
+     not an application of rule 5. */
+  --sans: "InterVariable", ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (min-width: 768px)  { .lx-page { --lx-gutter: 32px; } }
+@media (min-width: 1128px) { .lx-page { --lx-gutter: 48px; } }
+
+/* The page ground. body carries a fixed warm gradient for the game screens;
+   Coursera's ground is a flat surface, so cover it here and only here.
+   The 100dvh pair matches the house pattern already set at style.css:331 —
+   100vh alone is wrong on a phone with a retracting URL bar. */
+body.lx-page {
+  background: var(--lx-surface);
+  color: var(--lx-ink-1);
+  font: 400 16px/24px var(--sans);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.lx-main { flex: 1 1 auto; }
+
+/* ---------- skip link — the first focusable element on the page ----------
+   There was none anywhere in the 27 templates, so a keyboard or switch user
+   tabbed the whole nav on every single worksheet. */
+.lx-skip {
+  position: absolute; left: 8px; top: -64px; z-index: 30;
+  padding: 10px 16px; border-radius: 0 0 var(--lx-r-in) var(--lx-r-in);
+  background: var(--kosen-blue-deep); color: #fff;  /* 7.1:1 */
+  font: 700 14px/20px var(--sans); text-decoration: none;
+}
+.lx-skip:focus { top: 0; }
+
+/* ---------- container ---------- */
+.lx-wrap {
+  width: 100%; max-width: var(--lx-max); margin: 0 auto;
+  padding-left: var(--lx-gutter); padding-right: var(--lx-gutter);
+}
+/* Coursera caps the reading measure at 608-640px even on a 1440px screen.
+   Prose never runs the width of the viewport. */
+.lx-measure { max-width: 640px; }
+
+/* ==========================================================================
+   HEADER — three tiers, deliberately NOT sticky.
+   A 3-row sticky bar costs ~20% of a 390px phone viewport in a room where the
+   student is reading a worksheet, and constraint 1 rules it out. It scrolls.
+   ========================================================================== */
+.lx-top { position: static; }
+
+/* ── tier 1 · course switcher ────────────────────────────────────────────
+   Coursera's near-black utility row. The active item is BOLD + underbarred +
+   aria-current; the orange bar only reinforces the weight, and orange is legal
+   here because it is a RULE, not text. */
+.lx-tier1 { display: none; background: var(--ink); }
+@media (min-width: 768px) { .lx-tier1 { display: block; } }
+.lx-tier1-in { display: flex; align-items: stretch; gap: var(--lx-sp-3); min-height: 40px; }
+.lx-tier1-lab {
+  flex: none; align-self: center;
+  font: 700 12px/1 var(--sans);
+  color: #CFC8BF;                       /* 11.0:1 on #181512 */
+}
+.lx-tier1-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 0 2px; min-width: 0;
+}
+.lx-tier1-a {
+  display: flex; align-items: center; height: 100%; padding: 10px 8px;
+  font: 400 15px/20px var(--sans); color: #F1EDE7; text-decoration: none;  /* 16.4:1 */
+}
+.lx-tier1-a:hover { text-decoration: underline; }
+.lx-tier1-a--here { font-weight: 700; box-shadow: inset 0 -3px 0 var(--kmitl-orange); }
+
+/* ── tier 2 · the main bar ────────────────────────────────────────────────
+   1px hairline at the bottom, no shadow, and it does not gain one on scroll —
+   that flat-at-rest default is most of why Coursera reads calm. */
+.lx-tier2 { background: var(--lx-surface); border-bottom: 1px solid var(--lx-stroke); }
+.lx-tier2-in {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--lx-sp-2) var(--lx-sp-4); padding-top: 10px; padding-bottom: 10px;
+  min-height: 64px;
+}
+.lx-logo { flex: none; text-decoration: none; margin-right: var(--lx-sp-2); }
+/* The one selector in this layer that touches a shared class name. It is
+   ancestor-qualified by .lx-logo, which exists on no other template, so .mark
+   on host.html and player.html is untouched. */
+.lx-logo .word { font-size: 21px; }
+@media (min-width: 768px) { .lx-logo .word { font-size: 26px; } }
+
+.lx-nav { display: flex; align-items: center; gap: 2px; flex: none; }
+.lx-nav-a {
+  padding: 8px; border-radius: var(--lx-r-in); white-space: nowrap;
+  font: 400 15px/20px var(--sans); color: var(--lx-ink-2); text-decoration: none;
+}
+.lx-nav-a:hover { background: var(--lx-hover); color: var(--lx-ink-1); }
+
+/* Everything here needs something the anonymous visitor does not have. Grouped
+   and labelled in WORDS rather than greyed out: the visitor must be able to SEE
+   that it exists and read, in two words, that it is not for them — and the ~30
+   who do hold a code must be able to find it from any page. */
+.lx-actions {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--lx-sp-1) var(--lx-sp-2); margin-left: auto;
+}
+/* Below the tier-1 breakpoint this row used to wrap onto 2-3 lines of its own
+   (label, then links, then the CTA spilling to a line by itself) — on a 375px
+   phone that alone ran close to half the viewport before any page content
+   appeared. One horizontally-scrolling strip, no script required. */
+@media (max-width: 767px) {
+  .lx-actions {
+    flex-wrap: nowrap; overflow-x: auto; width: 100%; margin-left: 0;
+    padding-bottom: 2px; -webkit-overflow-scrolling: touch;
+  }
+  /* The scroll strip fixed the header eating half the viewport, but it left the
+     ONE time-critical destination — the weekly quiz — clipped at the right edge,
+     visible only as a sliver of orange, reachable only by a swipe nobody is told
+     to make. Pull it to the front on a phone: the item most likely to be tapped
+     is the item that should not need discovering. Source order is unchanged, so
+     the tab sequence still reads label -> game -> hand-in -> quiz. */
+  .lx-actions-lab { order: 0; }
+  .lx-cta         { order: 1; }
+  .lx-actions .lx-nav-a { order: 2; }
+}
+.lx-actions-lab {
+  flex: none; font: 700 12px/1 var(--sans);
+  color: var(--lx-ink-3);   /* 6.93:1 */
+}
+/* The position and construction of Coursera's `Join for Free` outline button.
+   There is no commerce here, so the slot goes to the one time-critical
+   destination the enrolled students actually need from every page. */
+.lx-cta {
+  padding: 8px 12px; border: 1px solid var(--kmitl-orange-deep);
+  border-radius: var(--lx-r-in); background: var(--lx-surface);
+  color: var(--kmitl-orange-deep);      /* 5.63:1 ✓ AA */
+  font: 700 14px/20px var(--sans); text-decoration: none; white-space: nowrap;
+}
+.lx-cta:hover { background: var(--kmitl-orange-deep); color: #fff; }
+/* Same visual treatment as .lx-nav-a (Courses / Simulations): a sign-in link is
+   still just a link, and giving it its own colour/hover made the nav read as
+   four unrelated constructions instead of one. It is applied alongside
+   .lx-nav-a in the markup; this rule only adds the layout it needs. */
+.lx-staff-link { flex: none; }
+
+/* ── tier 3 · staff bar ───────────────────────────────────────────────────
+   Signed-in teaching staff only, and only ever additive. It exists because the
+   teacher tools were a broken graph: /console linked to nothing but its own
+   editor and /logout, and /host had no links at all — not even sign out.
+   Coursera would use a JS dropdown. This is a flat wrapping bar: five links,
+   always all five, at every width, with zero script. */
+.lx-staffbar {
+  background: #FFF6F1;                       /* --ink on it 17.1:1 */
+  border-bottom: 1px solid var(--lx-stroke);
+  border-left: 4px solid var(--kmitl-orange);
+}
+.lx-staffbar-in {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--lx-sp-1) var(--lx-sp-2); padding-top: 8px; padding-bottom: 8px;
+}
+.lx-staffbar-lab {
+  flex: none; margin-right: var(--lx-sp-1);
+  font: 700 12px/1 var(--sans);
+  color: var(--kmitl-orange-deep);           /* 5.29:1 on #FFF6F1 ✓ AA */
+}
+.lx-staffbar-a {
+  padding: 6px 8px; border-radius: 6px; white-space: nowrap;
+  font: 600 14px/20px var(--sans); color: var(--lx-ink-1); text-decoration: none;
+}
+.lx-staffbar-a:hover { background: #FCE7DA; }
+.lx-staffbar-a--end { margin-left: auto; font-weight: 400; color: var(--lx-ink-3); }
+
+/* ==========================================================================
+   TYPE — Coursera's measured scale. Leading tightens as size grows
+   (14/20 = 1.43 -> 16/24 = 1.50 -> 20/24 = 1.20 -> 44/52 = 1.18).
+   ========================================================================== */
+.lx-h1 {
+  margin: 0; color: var(--lx-ink-1);
+  font: 600 32px/40px var(--sans); letter-spacing: -.1px;
+  overflow-wrap: anywhere; text-wrap: balance;
+}
+@media (min-width: 768px) { .lx-h1 { font-size: 44px; line-height: 52px; letter-spacing: -.15px; } }
+
+/* In-page section titles are QUIET — only 4px larger than body. Deliberately
+   not the tracked-out uppercase mono the old .home-sec h2 used: that is an
+   editorial idiom and it fights this one. */
+.lx-h2 {
+  margin: 0 0 20px; color: var(--lx-ink-1);
+  font: 600 20px/24px var(--sans); letter-spacing: -.06px;
+  overflow-wrap: anywhere;
+}
+.lx-h2--count { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.lx-count {
+  padding: 2px 10px; border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-pill);
+  background: var(--lx-surface); font: 400 14px/20px var(--sans); color: var(--lx-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A kicker has to read as bound to the headline below it, not as a stray
+   sentence above it: weight + brand colour do that work, and margin pulls it
+   in tight rather than letting the two sit at body-text's own line-height.
+   Colour is the deep blue link tone (7.1:1 on white), not orange — orange as
+   small text here is 3.84:1 and fails AA. */
+.lx-eyebrow {
+  display: block; margin: 0 0 6px;
+  font: 600 14px/18px var(--sans); color: var(--kosen-blue-deep);
+}
+.lx-lead { margin: var(--lx-sp-4) 0 0; font: 400 16px/24px var(--sans); color: var(--lx-ink-1); }
+.lx-sec-sub { margin: -12px 0 var(--lx-sp-5); font: 400 16px/24px var(--sans); color: var(--lx-ink-2); }
+.lx-sec-more { margin: var(--lx-sp-5) 0 0; font: 400 16px/24px var(--sans); }
+.lx-crumb { margin: 0 0 var(--lx-sp-3); font: 400 14px/20px var(--sans); }
+.lx-link {
+  color: var(--kosen-blue-deep); font-weight: 600;   /* 7.1:1 white · 6.4:1 tint */
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.lx-empty {
+  margin: var(--lx-sp-4) 0 0; max-width: 640px;
+  font: 400 16px/24px var(--sans); color: var(--lx-ink-2);
+}
+
+/* ==========================================================================
+   REGIONS — whitespace between sections, a hairline between REGIONS, a tint
+   band to separate a whole region. That last one does more hierarchy work than
+   any border, and it is one declaration. It is used ONCE on the whole site,
+   which is why it works.
+   ========================================================================== */
+.lx-hero { padding: var(--lx-sp-6) 0 var(--lx-sp-6); }
+.lx-sec  { padding: var(--lx-sp-7) 0; }
+.lx-sec--tight { padding-top: var(--lx-sp-2); }
+.lx-tint {
+  padding: var(--lx-sp-6) 0 var(--lx-sp-7);
+  background: var(--lx-ground);
+  margin-top: var(--lx-sp-6);
+}
+.lx-ground { padding: var(--lx-sp-5) 0 var(--lx-sp-7); background: var(--lx-ground); }
+.lx-cathead { padding-bottom: var(--lx-sp-2); }
+@media (min-width: 768px) {
+  .lx-hero { padding: 56px 0 var(--lx-sp-8); }
+  .lx-sec  { padding: var(--lx-sp-8) 0; }
+  .lx-sec--tight { padding-top: var(--lx-sp-3); }
+  .lx-tint { padding: var(--lx-sp-7) 0 56px; }
+  .lx-ground { padding: var(--lx-sp-6) 0 var(--lx-sp-8); }
+}
+
+/* ---------- the facts strip (Coursera's "Details to know") ----------
+   Every value is counted at render time or is a statement of policy. No
+   duration, no rating, no enrolment count. Orange appears as a RULE, which is
+   legal at any size; #E35205 as small text on white is 3.84:1 and is not. */
+.lx-facts {
+  list-style: none; margin: var(--lx-sp-5) 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: var(--lx-sp-4) var(--lx-sp-6);
+}
+.lx-fact {
+  flex: 1 1 150px; max-width: 280px;
+  padding-left: var(--lx-sp-3); border-left: 3px solid var(--kmitl-orange);
+}
+.lx-fact-v {
+  display: block; font: 700 20px/24px var(--sans); color: var(--lx-ink-1);
+  font-variant-numeric: tabular-nums;
+}
+.lx-fact-l { display: block; margin-top: 2px; font: 400 14px/20px var(--sans); color: var(--lx-ink-2); }
+
+/* ==========================================================================
+   CONSTRUCTION A — the course card, and the ladder that makes 1 / 3 / 10 all
+   look deliberate.
+
+   li max-width 100% -> 50% -> 33.33% -> 25%, card capped at 452px, 12px gutters
+   from 6px side padding against a -6px list margin. At 3 courses on a 1440px
+   screen you get three cards and honest dead space, NOT three stretched
+   monsters; at 10 the grid simply fills; at 1 the --solo modifier turns the
+   card into a full-width feature instead of a lonely quarter-width tile.
+
+   TWO CONSTRUCTIONS FROM ONE MARKUP: below 1128px the card is a ROW (72px
+   square marker beside the text); at 1128px and up it becomes a TILE with a
+   16:9 field on top. Pure media query, and it is Coursera's own answer to a
+   wall of identical boxes.
+   ========================================================================== */
+.lx-grid { list-style: none; margin: 0 -6px; padding: 0; display: flex; flex-wrap: wrap; }
+.lx-grid > li { display: flex; width: 100%; max-width: 100%; padding: 0 6px 12px; }
+@media (min-width: 768px)  { .lx-grid > li { max-width: 50%; } }
+@media (min-width: 1128px) { .lx-grid > li { max-width: 33.3333%; } }
+@media (min-width: 1440px) { .lx-grid > li { max-width: 25%; } }
+
+.lx-card {
+  position: relative; display: flex; flex-direction: row; gap: var(--lx-sp-3);
+  width: 100%; max-width: 452px; padding: var(--lx-sp-2);
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+  box-shadow: none;                      /* flat at rest — this is the point */
+}
+.lx-tile {
+  position: relative; flex: none; overflow: hidden;
+  width: 72px; height: 72px; border-radius: var(--lx-r-in);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+}
+.lx-tile-n { font: 700 24px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.lx-tile-u { margin-top: 3px; font: 700 11px/1 var(--sans); }
+/* Three flat brand fields. The COUNT inside each tile is what actually differs
+   course to course, so the information never rests on the hue. */
+.lx-tile--a, .lx-sq--a { background-color: var(--kosen-blue-deep);   color: #fff; }  /* 7.1:1  */
+.lx-tile--b, .lx-sq--b { background-color: var(--kmitl-orange-deep); color: #fff; }  /* 5.63:1 */
+.lx-tile--c, .lx-sq--c { background-color: var(--ink);               color: #fff; }  /* 18.9:1 */
+/* A sheen, not a pattern: texture on top of hue would have made the three
+   plates harder to tell apart in greyscale, which is exactly the failure
+   this field exists to avoid (the count is the only thing that must always
+   read). Two gradients of the SAME neutral (white highlight, black grounding
+   shadow) sit on every plate identically, so the hue-to-hue contrast that
+   keeps them distinguishable is untouched — only the sense of a lit surface
+   changes. background-image layers over background-color, never replaces it. */
+.lx-tile--a, .lx-tile--b, .lx-tile--c, .lx-sq--a, .lx-sq--b, .lx-sq--c {
+  background-image:
+    radial-gradient(130% 95% at 14% -15%, rgba(255,255,255,.32), transparent 55%),
+    linear-gradient(160deg, rgba(255,255,255,.08), transparent 45%);
+  background-repeat: no-repeat;
+  box-shadow: inset 0 -10px 16px -12px rgba(0,0,0,.35);
+}
+
+.lx-card-body {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+  padding: var(--lx-sp-1);
+}
+.lx-card-t { margin: 0; font: 600 16px/20px var(--sans); color: var(--lx-ink-1); overflow-wrap: anywhere; }
+.lx-card-a { color: inherit; text-decoration: none; }
+/* Coursera's own whole-card click target: an overlay on the title link. No
+   script, one pseudo-element, and the accessible name stays the title. */
+.lx-card-a::before { content: ""; position: absolute; inset: 0; border-radius: var(--lx-r-card); }
+.lx-card-a:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: 3px; }
+
+/* label + list — the construction Coursera uses for "Skills you'll gain:". We
+   have no skills taxonomy, so it carries what the course actually contains,
+   counted from that course's own units. Every card's line is different. */
+.lx-card-lab {
+  display: block; margin: var(--lx-sp-4) 0 var(--lx-sp-2);
+  font: 700 14px/20px var(--sans); color: var(--lx-ink-1);
+}
+.lx-card-lab--inline { display: inline; margin: 0; }
+.lx-card-p { margin: var(--lx-sp-4) 0 0; font: 400 14px/20px var(--sans); color: var(--lx-ink-1); }
+
+/* The syllabus spine: a compact preview of the course's named units, capped in
+   the template at three rows so a spine card and a composition card cannot end
+   up wildly different heights. */
+.lx-spine { list-style: none; margin: 0; padding: 0; }
+.lx-spine-i {
+  display: flex; align-items: baseline; gap: var(--lx-sp-2);
+  padding: 3px 0; font: 400 14px/20px var(--sans); color: var(--lx-ink-1);
+}
+.lx-spine-n {
+  flex: none; width: 18px; text-align: right;
+  font: 700 12px/20px var(--sans); color: var(--lx-ink-3);   /* 6.93:1 */
+  font-variant-numeric: tabular-nums;
+}
+.lx-spine-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.lx-spine-c {
+  flex: none; font: 400 13px/20px var(--sans); color: var(--lx-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.lx-spine-more {
+  padding: 3px 0 0 26px; font: 400 13px/18px var(--sans); color: var(--lx-ink-2);
+}
+
+/* The footer block is pushed to the bottom of the card. Cards in a flex row are
+   equal height by default; without this, a card whose body is one line short
+   would leave that difference as dead white BELOW its last line. With it, every
+   card's last line lands on the same baseline and the delta becomes ordinary
+   whitespace. */
+.lx-card-foot {
+  margin-top: auto; padding-top: var(--lx-sp-4);
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--lx-sp-2);
+}
+.lx-card-meta {
+  font: 400 14px/20px var(--sans); color: var(--lx-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Coursera's status pill. Outline-only, so it reads as secondary without being
+   greyed into invisibility — exactly what the anonymous visitor needs from
+   every access marker on this site. Inline in the body on a phone, overlaid on
+   the tile's top-right corner once the card becomes a tile. */
+.lx-pill {
+  padding: 1px 8px; border: 1px solid var(--lx-ink-3); border-radius: var(--lx-r-pill);
+  background: var(--lx-surface); color: var(--lx-ink-3);   /* 6.93:1 */
+  font: 600 13px/18px var(--sans); white-space: nowrap;
+  /* LOAD-BEARING at >=1128px, where this pill is absolutely positioned and sits
+     AFTER the title link's inset:0 overlay in the DOM. Without it the pill
+     paints on top and swallows the click, leaving a ~90x22px dead zone in the
+     top-right corner of every course tile — which is the first place a
+     reviewer clicks. The pill is never interactive, so refusing pointer events
+     costs nothing. */
+  pointer-events: none;
+}
+
+@media (min-width: 1128px) {
+  .lx-card { flex-direction: column; gap: var(--lx-sp-2); }
+  .lx-tile { width: 100%; height: auto; aspect-ratio: 16 / 9; min-height: 120px; }
+  .lx-tile-n { font-size: 52px; }
+  .lx-tile-u { margin-top: 8px; font-size: 12px; }
+  .lx-card-body { padding: 0 var(--lx-sp-2) var(--lx-sp-2); }
+  .lx-pill {
+    position: absolute; top: 17px; right: 17px; z-index: 2;
+    border-color: transparent; background: #fff; color: var(--lx-ink-1);
+  }
+}
+
+/* n = 1. A single quarter-width tile in a four-column ladder reads as an
+   accident. The solo modifier keeps the ROW construction at every width and
+   gives it a real feature size. Two classes, so it beats the 1128px rules on
+   specificity regardless of source order. */
+.lx-grid--solo > li { max-width: 100%; }
+.lx-grid--solo .lx-card { max-width: 720px; flex-direction: row; gap: var(--lx-sp-4); padding: var(--lx-sp-4); }
+.lx-grid--solo .lx-tile { width: 96px; height: 96px; aspect-ratio: auto; min-height: 0; }
+.lx-grid--solo .lx-tile-n { font-size: 32px; }
+.lx-grid--solo .lx-tile-u { margin-top: 4px; font-size: 10px; }
+.lx-grid--solo .lx-card-t { font-size: 20px; line-height: 26px; }
+.lx-grid--solo .lx-pill { position: static; border-color: var(--lx-ink-3); background: var(--lx-surface); color: var(--lx-ink-3); }
+
+/* Hover is decoration only — every fact on these pages is visible at rest,
+   because the phones students use in class have no hover at all. Guarded on
+   BOTH hover capability and reduced motion; style.css:464's blanket
+   `* { transition: none !important }` already covers the second, twice over. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .lx-card, .lx-lcard, .lx-wide, .lx-live, .lx-grow {
+    transition: box-shadow .3s cubic-bezier(0, 0, .5, 1),
+                transform  .3s cubic-bezier(0, 0, .5, 1),
+                border-color .3s cubic-bezier(0, 0, .5, 1);
+  }
+  .lx-card:hover, .lx-lcard:hover, .lx-wide:hover, .lx-live:hover, .lx-grow:hover {
+    box-shadow: 0 0 4px rgba(1, 123, 196, .12), 0 4px 12px 4px rgba(24, 21, 18, .10);
+    transform: translate3d(0, -2px, 0);
+    border-color: rgba(24, 21, 18, .24);
+  }
+}
+
+/* ==========================================================================
+   CONSTRUCTION A' — the catalogue list card (/learn).
+   Same data, rebuilt as a row at every width. Four honest fields read as
+   deliberate density in a row and as an empty tile in a tile, so the catalogue
+   takes the row — a different construction from "/" on purpose.
+   ========================================================================== */
+.lx-clist { list-style: none; margin: 0 -6px; padding: 0; display: flex; flex-wrap: wrap; }
+.lx-clist > li { display: flex; width: 100%; padding: 0 6px 12px; }
+@media (min-width: 768px)  { .lx-clist > li { width: 50%; } }
+@media (min-width: 1128px) { .lx-clist > li { width: 33.3333%; } }
+.lx-lcard {
+  position: relative; display: flex; gap: var(--lx-sp-4);
+  width: 100%; max-width: 452px; padding: var(--lx-sp-4);
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+}
+.lx-sq {
+  flex: none; width: 64px; height: 64px; border-radius: var(--lx-r-in);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+@media (min-width: 768px) { .lx-sq { width: 80px; height: 80px; } }
+.lx-sq-n { font: 700 22px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.lx-sq-u { margin-top: 3px; font: 700 11px/1 var(--sans); }
+.lx-lcard-body { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
+.lx-pill--inline { position: static; }
+
+/* ==========================================================================
+   CONSTRUCTION B — one wide strip (the simulations).
+   Not a shrunken card: a different object. The eye reads "different kind of
+   thing" before it reads a word.
+   ========================================================================== */
+.lx-wide {
+  position: relative; display: block; max-width: 900px; padding: var(--lx-sp-5);
+  background: var(--lx-surface); color: var(--lx-ink-1); text-decoration: none;
+  border: 1px solid var(--lx-stroke);
+  border-left: 4px solid var(--kosen-blue);   /* a RULE, not text */
+  border-radius: var(--lx-r-card);
+}
+.lx-wide:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: 2px; }
+.lx-wide-t { display: block; font: 600 20px/28px var(--sans); overflow-wrap: anywhere; }
+.lx-wide-p {
+  display: block; margin-top: var(--lx-sp-2); max-width: 60ch;
+  font: 400 14px/20px var(--sans); color: var(--lx-ink-2);
+}
+.lx-wide .lx-need { margin-top: var(--lx-sp-3); }
+
+/* ==========================================================================
+   CONSTRUCTION B' — inverse anatomy (the live game).
+   The access marker comes FIRST, before the title: a student who reaches this
+   row and only then discovers they needed something they do not have was failed
+   by the page. Also the visible proof that this row is a different kind of
+   thing from the graded rows below, which put the title first and the marker
+   last. This row is NOT graded and carries no graded flag — it must never
+   grow one.
+   ========================================================================== */
+.lx-live {
+  position: relative; display: block; max-width: 900px; padding: var(--lx-sp-5);
+  background: var(--lx-surface); color: var(--lx-ink-1); text-decoration: none;
+  border: 1px dashed var(--lx-ink-3);      /* dashed: an in-the-room thing */
+  border-radius: var(--lx-r-card);
+}
+.lx-live:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: 2px; }
+.lx-live-t { display: block; margin-top: var(--lx-sp-3); font: 600 20px/28px var(--sans); overflow-wrap: anywhere; }
+.lx-live-p {
+  display: block; margin-top: var(--lx-sp-2); max-width: 60ch;
+  font: 400 14px/20px var(--sans); color: var(--lx-ink-2);
+}
+
+/* ==========================================================================
+   CONSTRUCTION C — the graded rows, on the tint band.
+   ========================================================================== */
+.lx-grows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lx-sp-3); }
+@media (min-width: 768px) {
+  .lx-grows { flex-direction: row; flex-wrap: wrap; gap: 0; margin: 0 -6px; }
+  .lx-grows > li { display: flex; flex: 1 1 260px; max-width: 452px; padding: 0 6px 12px; }
+}
+.lx-grow {
+  position: relative; display: flex; flex-direction: column; gap: var(--lx-sp-2);
+  width: 100%; padding: var(--lx-sp-4);
+  background: var(--lx-surface); color: var(--lx-ink-1); text-decoration: none;
+  border: 1px solid var(--lx-stroke);
+  border-left: 4px solid var(--kmitl-orange);   /* a RULE, not text — legal at 3.84:1 */
+  border-radius: var(--lx-r-card);
+}
+.lx-grow:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: 2px; }
+.lx-grow-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--lx-sp-2); }
+.lx-grow-t { font: 600 18px/24px var(--sans); overflow-wrap: anywhere; }
+.lx-grow-p { font: 400 14px/20px var(--sans); color: var(--lx-ink-2); }
+.lx-grow .lx-need { align-self: flex-start; margin-top: auto; }
+
+/* ==========================================================================
+   THE TWO MARKER VOCABULARIES — kept apart in SHAPE as well as in colour.
+
+   `.lx-need`        what it COSTS to walk in     — outlined pill
+   `.lx-flag-graded` whether it is MARKED         — filled square-cornered flag
+
+   They were one orange token once, so orange meant "bring your slip" on the
+   front page and "this is graded" on the course page — and /play, explicitly
+   ungraded, wore it. One token, two meanings, two pages a student crosses in a
+   single session. GRADED stays a literal WORD: colour alone dies in greyscale,
+   in a failed stylesheet, in a screen reader and for a colour-blind reader, and
+   this is the one signal on the page with a real consequence behind it.
+
+   Neither class name contains the substring "stakes", so the test asserting
+   that the ungraded live game carries no graded marker cannot be tripped by a
+   class name — belt and braces on top of the layout distance.
+   ========================================================================== */
+.lx-need {
+  flex: none; display: inline-block; padding: 1px 10px;
+  border: 1px solid var(--kmitl-orange-deep); border-radius: var(--lx-r-pill);
+  background: var(--lx-surface); color: var(--kmitl-orange-deep);  /* 5.63:1 ✓ AA */
+  font: 600 13px/18px var(--sans); white-space: nowrap;
+}
+.lx-need--free { border-color: var(--lx-ink-3); color: var(--lx-ink-3); }  /* 6.93:1 */
+.lx-flag-graded {
+  flex: none; display: inline-block; padding: 3px 8px; border-radius: var(--lx-r-sm);
+  background: var(--kmitl-orange-deep); color: #fff;                /* 5.63:1 ✓ AA */
+  font: 700 12px/16px var(--sans); letter-spacing: .09em; white-space: nowrap;
+}
+
+/* ==========================================================================
+   THE JUMP STRIP — plain anchors, no script. Rendered only when a course has
+   more than one NAMED module. Everything below it is open at rest, which makes
+   a 19-unit course a long page; this is the mitigation.
+   ========================================================================== */
+.lx-jump {
+  max-width: var(--lx-read); margin: 0 0 var(--lx-sp-5);
+  padding: var(--lx-sp-3) var(--lx-sp-4);
+  background: var(--lx-ground); border: 1px solid var(--lx-stroke);
+  border-radius: var(--lx-r-in);
+}
+.lx-jump-h {
+  margin: 0 0 var(--lx-sp-2);
+  font: 700 13px/18px var(--sans); color: var(--lx-ink-1);
+}
+.lx-jumplist { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--lx-sp-2); }
+.lx-jump-a {
+  display: inline-block; padding: 4px 10px;
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-pill);
+  background: var(--lx-surface); color: var(--kosen-blue-deep);   /* 7.1:1 */
+  font: 600 13px/18px var(--sans); text-decoration: none;
+}
+.lx-jump-a:hover { border-color: var(--kosen-blue-deep); }
+
+/* ==========================================================================
+   MODULES — Coursera's accordion is JavaScript. This is <details>/<summary>,
+   which needs no script and is explicitly allowed under `default-src 'none'`.
+
+   The native marker is removed on purpose (in WebKit it lands on its own line
+   above a flex summary row, which looks like a typo repeated seven times down
+   the page). What replaces it is a WORD — "Hide" when open, "Show" when closed
+   — drawn in CSS on an aria-hidden span. That is a stronger signal than a
+   triangle: it survives greyscale, high contrast and a missing glyph font, and
+   the <details> element still carries the real state for assistive tech.
+   ========================================================================== */
+.lx-mod { max-width: var(--lx-read); margin: 0; border-bottom: 1px solid var(--lx-stroke); }
+.lx-mod:first-of-type { border-top: 1px solid var(--lx-stroke); }
+.lx-mod-sum {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px var(--lx-sp-3);
+  padding: var(--lx-sp-3); margin: 0 -12px;
+  border-radius: var(--lx-r-in); cursor: pointer;
+  list-style: none;                       /* Firefox / spec marker */
+}
+.lx-mod-sum::-webkit-details-marker { display: none; }
+.lx-mod-sum:hover { background: var(--lx-hover); }
+.lx-mod-sum:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: -2px; }
+.lx-mod-eyebrow { flex: none; font: 400 14px/20px var(--sans); color: var(--lx-ink-2); }
+.lx-mod-t { font: 600 20px/28px var(--sans); color: var(--lx-ink-1); overflow-wrap: anywhere; }
+.lx-mod-meta {
+  flex: 1 1 100%; font: 400 14px/20px var(--sans); color: var(--lx-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.lx-mod-tog {
+  flex: none; font: 600 13px/20px var(--sans); color: var(--lx-ink-3);  /* 6.93:1 */
+}
+.lx-mod-tog::after { content: "Hide"; }
+.lx-mod:not([open]) > .lx-mod-sum .lx-mod-tog::after { content: "Show"; }
+@media (min-width: 768px) {
+  .lx-mod-meta { flex: none; margin-left: auto; }
+  .lx-mod-tog { margin-left: var(--lx-sp-3); }
+}
+.lx-mod > .lx-units { padding-bottom: var(--lx-sp-3); }
+
+/* ==========================================================================
+   THE UNIT ROW — one definition, used by the grouped and the flat path alike.
+
+   Capped at --lx-read (900px). Without a cap these rows run the full 1344px of
+   a 1440px viewport and the GRADED flag ends up most of a screen away from the
+   unit number — which is a spreadsheet, not a module list.
+   ========================================================================== */
+.lx-units { list-style: none; margin: 0; padding: 0; max-width: var(--lx-read); }
+.lx-units--flat { border-top: 1px solid var(--lx-stroke); }
+.lx-units > li { border-bottom: 1px solid var(--lx-stroke); }
+.lx-units--flat > li:last-child { border-bottom: 0; }
+.lx-mod .lx-units > li:last-child { border-bottom: 0; }
+
+/* The negative margin is the trick: the hover field bleeds past the text column
+   while the text itself stays aligned to the container. */
+.lx-unit {
+  position: relative;
+  display: grid; grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-areas:
+    "tile main"
+    "tile tags";
+  gap: var(--lx-sp-2) var(--lx-sp-3);
+  padding: 14px var(--lx-sp-3); margin: 0 -12px;
+  border-radius: var(--lx-r-in); color: var(--lx-ink-1); text-decoration: none;
+}
+.lx-unit:hover { background: var(--lx-hover); }
+.lx-unit:focus-visible { outline: 3px solid var(--kosen-blue); outline-offset: -2px; }
+
+/* The leading slot carries the NUMBER, which differs on every row, so 19 of
+   them form a column the eye can run straight down. A badge-keyed tile put 13
+   identical blue squares here instead — the very failure this redesign exists
+   to fix, reproduced in the densest view on the site. The unit word and the
+   number are one readable phrase, so the token is printed once per row and
+   never twice. */
+.lx-unit-tile {
+  grid-area: tile; align-self: start;
+  width: 52px; min-height: 52px; padding: 5px 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: var(--lx-r-in); text-align: center;
+}
+.lx-unit-u {
+  font: 700 10px/1 var(--sans);
+  opacity: .85;
+}
+.lx-unit-n {
+  margin-top: 2px; font: 700 17px/1.1 var(--sans);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+/* The tint is keyed to the badge for rhythm only, and it is ALWAYS redundant
+   with the badge word printed in the tag row of the same line. Every pairing
+   measured against the tile fill. */
+.lx-unit-tile--lab      { background: #EEF6FB; color: var(--lx-ink-1);
+                          box-shadow: inset 3px 0 0 var(--kosen-blue); }        /* 16.6:1 */
+.lx-unit-tile--exam     { background: #FDF0E8; color: var(--lx-ink-1);
+                          box-shadow: inset 3px 0 0 var(--kmitl-orange); }      /* 16.3:1 */
+.lx-unit-tile--ctf      { background: var(--ink); color: #fff; }                /* 18.9:1 */
+.lx-unit-tile--capstone { background: var(--kmitl-orange); color: var(--ink); } /*  4.74:1 ✓ AA */
+.lx-unit-tile--review   { background: var(--lx-surface); color: var(--lx-ink-1);
+                          border: 2px solid var(--kosen-blue-deep); }           /* 18.9:1 */
+.lx-unit-tile--guide    { background: #F1EDE6; color: var(--lx-ink-1); }        /* 15.6:1 */
+.lx-unit-tile--none     { background: var(--lx-surface); color: var(--lx-ink-1);
+                          border: 1px dashed var(--lx-stroke); }                /* 18.9:1 */
+
+.lx-unit-b { grid-area: main; min-width: 0; display: flex; flex-direction: column; }
+.lx-unit-t { font: 600 17px/24px var(--sans); overflow-wrap: anywhere; }
+@media (min-width: 768px) { .lx-unit-t { font-size: 20px; line-height: 28px; } }
+.lx-unit-meta {
+  margin-top: var(--lx-sp-1); font: 400 14px/20px var(--sans); color: var(--lx-ink-2);
+  overflow-wrap: anywhere;
+}
+.lx-unit-tags {
+  grid-area: tags; display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--lx-sp-2);
+}
+/* The type word. Outlined, so LAB / EXAM / CTF / REVIEW / GUIDE read as
+   classification and never compete with the filled GRADED flag beside them. */
+.lx-tag {
+  flex: none; display: inline-block; padding: 2px 8px;
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-sm);
+  background: var(--lx-surface); color: var(--lx-ink-3);   /* 6.93:1 */
+  font: 700 12px/16px var(--sans); letter-spacing: .07em; white-space: nowrap;
+}
+
+@media (min-width: 720px) {
+  /* The unit row becomes a real three-column grid: the number tile keeps its
+     own gutter so the column stays scannable, the title and documents take the
+     middle, and the classification right-aligns into a third. */
+  .lx-unit {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    grid-template-areas: "tile main tags";
+    align-items: center; gap: var(--lx-sp-4);
+  }
+  .lx-unit-tile { width: 64px; min-height: 64px; align-self: center; }
+  .lx-unit-n { font-size: 20px; }
+  .lx-unit-u { font-size: 9px; }
+  .lx-unit-tags { justify-content: flex-end; }
+}
+
+/* ==========================================================================
+   THE ENROLLED-STUDENT ASIDE (catalogue page and course page).
+   Coursera's sticky right-rail enrol card has no honest equivalent — there is
+   no enrolment and no account. This is what takes its place: an outlined block,
+   NOT a second tint band. The tint band is spent once, on the front door's
+   graded region, and it works precisely because it is used once.
+   ========================================================================== */
+.lx-aside {
+  margin-top: var(--lx-sp-7); max-width: 640px; padding: var(--lx-sp-5);
+  background: var(--lx-surface);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+}
+.lx-aside-h { margin: 0; font: 600 20px/24px var(--sans); color: var(--lx-ink-1); }
+.lx-aside-p { margin: 6px 0 var(--lx-sp-4); font: 400 14px/20px var(--sans); color: var(--lx-ink-2); }
+.lx-aside-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.lx-aside-list > li { display: flex; align-items: center; flex-wrap: wrap; gap: var(--lx-sp-2); }
+
+/* ==========================================================================
+   FOOTER — every public destination restated, plus the staff door. 23 of 27
+   templates had no link back to anything; this is the floor under that.
+   ========================================================================== */
+.lx-foot {
+  border-top: 1px solid var(--lx-stroke); background: var(--lx-surface);
+  padding: var(--lx-sp-6) 0 var(--lx-sp-7);
+}
+.lx-foot-in { display: flex; flex-wrap: wrap; gap: var(--lx-sp-5) var(--lx-sp-7); }
+.lx-foot-col { flex: 1 1 200px; min-width: 0; }
+.lx-foot-h { margin: 0 0 var(--lx-sp-3); font: 700 14px/20px var(--sans); color: var(--lx-ink-1); }
+.lx-foot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lx-sp-2); }
+.lx-foot-a { font: 400 15px/20px var(--sans); color: var(--kosen-blue-deep); text-decoration: none; }
+.lx-foot-a:hover { text-decoration: underline; }
+.lx-foot-need { font: 400 13px/18px var(--sans); color: var(--lx-ink-3); white-space: nowrap; }
+.lx-foot-legal {
+  margin: var(--lx-sp-6) 0 0; max-width: 640px;
+  font: 400 13px/20px var(--sans); color: var(--lx-ink-2);
+}
+
+/* ==========================================================================
+   FORCED-COLOURS / Windows high contrast. Background fills are stripped there,
+   so every element whose meaning is partly carried by a fill gets a border back.
+   The WORD inside each survives regardless — that is why the words exist.
+   ========================================================================== */
+@media (forced-colors: active) {
+  .lx-tag, .lx-flag-graded, .lx-need, .lx-pill, .lx-tile, .lx-sq,
+  .lx-unit-tile, .lx-jump-a {
+    border: 1px solid currentColor;
+  }
+  .lx-tier1-a--here { text-decoration: underline; }
+  .lx-card, .lx-lcard, .lx-wide, .lx-live, .lx-grow, .lx-aside { border: 1px solid CanvasText; }
+}
+
+
+/* ── Teacher tool bar ────────────────────────────────────────────────────────
+   /console, /assess, /work and /host are four separate route groups that until
+   now linked to almost nothing: /console (the page you land on after signing in)
+   reached only its own set editor, and /host reached nothing at all. This is the
+   one strip that connects them.
+
+   Deliberately NOT the .lx-* course-platform nav: these pages keep the warm
+   paper theme, and dropping a white Coursera-style bar onto them would make the
+   teacher side look like two different products. Plain links, no JS.
+
+   The current page is marked by WEIGHT and an underline via [aria-current], not
+   colour — same rule the rest of this stylesheet follows. */
+.tnav { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 2px 0 14px; }
+.tnav a {
+  font: 600 13.5px/1.5 var(--sans);
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+.tnav a:hover { color: var(--kmitl-orange-deep); border-bottom-color: var(--hair); }
+.tnav a[aria-current] {
+  color: var(--ink);
+  font-weight: 800;
+  border-bottom-color: var(--kmitl-orange);
+}
+/* In the masthead (console) the strip sits between the wordmark and Sign out. */
+.masthead .tnav { margin: 0; flex: 1 1 auto; justify-content: center; }
+
+/* The host screen is PROJECTED. One quiet link, sized to be legible to the
+   teacher at the keyboard and ignorable by the room. */
+.host-exit {
+  font: 600 12.5px/1 var(--sans);
+  letter-spacing: .04em;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 6px 10px;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+}
+.host-exit:hover { color: var(--ink); border-color: var(--hair-2); }
+
+/* ==========================================================================
+   .lx-prose — the worksheet body. content.py escapes every byte before
+   recognising any markdown (its module docstring, test_content.py), so this
+   layer never touches that ordering: it only styles the HTML content.py
+   already produced. Every element here comes from a real worksheet — see
+   week01/04/05/11 — plus <img> and <iframe> for completeness (content.py:689
+   embeds a sandboxed simulation as a bare <iframe>, no wrapper class, so it
+   is styled by tag name).
+   Container capped wider than .lx-measure (900px vs 640px): a paragraph at
+   640px reads well, but a <pre> or <table> at 640px wraps code and numbers
+   that don't need to. EVERY .lx- selector here still contains .lx-, so this
+   cannot match /host or /play — same rule the rest of this layer follows.
+   ========================================================================== */
+.lx-prose { max-width: 900px; margin-left: auto; margin-right: auto; }
+.lx-prose > :first-child { margin-top: 0; }
+.lx-prose h2 {
+  margin: var(--lx-sp-7) 0 var(--lx-sp-3); color: var(--lx-ink-1);
+  font: 700 24px/32px var(--sans); letter-spacing: -.06px;
+}
+.lx-prose h3 {
+  margin: var(--lx-sp-6) 0 var(--lx-sp-2); color: var(--lx-ink-1);
+  font: 700 19px/28px var(--sans);
+}
+.lx-prose h4 {
+  margin: var(--lx-sp-5) 0 var(--lx-sp-2); color: var(--lx-ink-2);
+  font: 700 15px/22px var(--sans);
+}
+.lx-prose p { margin: 0 0 var(--lx-sp-4); font: 400 16px/26px var(--sans); color: var(--lx-ink-1); max-width: 640px; }
+.lx-prose ul, .lx-prose ol { margin: 0 0 var(--lx-sp-4); padding-left: 22px; font: 400 16px/26px var(--sans); color: var(--lx-ink-1); max-width: 640px; }
+.lx-prose li { margin-bottom: 4px; }
+.lx-prose li > ul, .lx-prose li > ol { margin: 4px 0 0; }
+.lx-prose strong { font-weight: 700; }
+.lx-prose a { color: var(--kosen-blue-deep); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.lx-prose hr { height: 1px; margin: var(--lx-sp-6) 0; border: 0; background: var(--lx-stroke); }
+.lx-prose img { max-width: 100%; height: auto; border-radius: var(--lx-r-in); border: 1px solid var(--lx-stroke); }
+.lx-prose iframe {
+  display: block; width: 100%; aspect-ratio: 4 / 3; margin: var(--lx-sp-2) 0 var(--lx-sp-4);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+}
+
+/* Blockquote carries the two callouts every worksheet opens with — course
+   metadata and the ethics note — so it needs to read as important, not as a
+   quotation. Left rule, not a filled tint band: the tint band is spent once,
+   on the front door's graded region (home.html), and reusing it here would
+   spend the ONE device that works because it's rare. */
+.lx-prose blockquote {
+  margin: 0 0 var(--lx-sp-4); padding: var(--lx-sp-1) 0 var(--lx-sp-1) var(--lx-sp-4);
+  border-left: 3px solid var(--kmitl-orange); max-width: 640px;
+  font: 400 15px/24px var(--sans); color: var(--lx-ink-2);
+}
+.lx-prose blockquote p { margin: 0 0 var(--lx-sp-1); max-width: none; }
+.lx-prose blockquote p:last-child { margin-bottom: 0; }
+
+.lx-prose table {
+  width: 100%; margin: 0 0 var(--lx-sp-5); border-collapse: collapse;
+  font: 400 15px/22px var(--sans); color: var(--lx-ink-1);
+}
+.lx-prose th, .lx-prose td {
+  padding: var(--lx-sp-2) var(--lx-sp-3); text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--lx-stroke);
+}
+.lx-prose th { font-weight: 700; color: var(--lx-ink-1); border-bottom: 2px solid var(--lx-ink-1); }
+
+/* Code: a distinct surface (--lx-ground, the same warm tint used for the
+   graded band and the catalogue background) so it reads as literal input
+   inside a page that is otherwise all body text. overflow-x is load-bearing
+   — several worksheets' bash blocks run past 900px unwrapped. */
+.lx-prose pre {
+  margin: 0 0 var(--lx-sp-4); padding: var(--lx-sp-3); overflow-x: auto;
+  background: var(--lx-ground); border-radius: var(--lx-r-in);
+  font: 400 13.5px/20px var(--mono); color: var(--lx-ink-1);
+}
+.lx-prose pre code { padding: 0; background: none; border: 0; }
+.lx-prose code {
+  padding: 1px 5px; background: var(--lx-ground); border-radius: var(--lx-r-sm);
+  font: 400 13.5px/1 var(--mono); color: var(--lx-ink-1);
+}
+
+/* ==========================================================================
+   .lx-form — the single-column code-entry / sign-in shape shared by login,
+   register, the quiz/submit access-code screens and the quiz question form.
+   Deliberately small: submit_work.html's file-upload + inline-delete + note
+   page needs more than this covers and stays on the pre-redesign shell for
+   now (see labs/live-quiz's own commit history, not this file, for why).
+   ========================================================================== */
+.lx-form { max-width: 440px; }
+/* .lx-lead's own rule is top-margin-only — built for the hero pattern, where
+   .lx-facts supplies the gap below it. A form has no .lx-facts, so the field
+   that follows needs its own breathing room here instead. */
+.lx-form > .lx-lead { margin-bottom: var(--lx-sp-4); }
+.lx-field { margin: 0 0 var(--lx-sp-4); }
+.lx-label {
+  display: block; margin: 0 0 6px; font: 600 14px/20px var(--sans); color: var(--lx-ink-1);
+}
+.lx-input, .lx-textarea {
+  display: block; width: 100%; padding: 10px var(--lx-sp-3);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-in);
+  background: var(--lx-surface); color: var(--lx-ink-1);
+  font: 400 16px/24px var(--sans);
+}
+.lx-input:focus, .lx-textarea:focus { outline: 2px solid var(--kosen-blue-deep); outline-offset: 1px; }
+.lx-textarea { resize: vertical; }
+.lx-opt {
+  display: flex; align-items: flex-start; gap: var(--lx-sp-2);
+  padding: var(--lx-sp-2) var(--lx-sp-3); margin-bottom: var(--lx-sp-2);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-in);
+  font: 400 16px/24px var(--sans); color: var(--lx-ink-1);
+}
+.lx-opt:has(input:checked) { border-color: var(--kosen-blue-deep); background: #F3F8FC; }
+.lx-hint { margin: var(--lx-sp-4) 0 0; font: 400 14px/20px var(--sans); color: var(--lx-ink-3); }
+.lx-err {
+  margin: 0 0 var(--lx-sp-4); padding: var(--lx-sp-2) var(--lx-sp-3);
+  border: 1px solid #E8B4A6; border-radius: var(--lx-r-in);
+  background: #FDF0EC; color: #7A2A0F;
+  font: 600 14px/20px var(--sans);
+}
+.lx-btn {
+  display: inline-block; padding: 10px var(--lx-sp-5); border: 0; border-radius: var(--lx-r-in);
+  background: var(--kosen-blue-deep); color: #fff;                 /* 7.1:1 */
+  font: 700 15px/20px var(--sans); text-decoration: none; cursor: pointer;
+}
+.lx-btn:hover { background: #014a78; }
+
+/* ==========================================================================
+   NEW COMPONENTS — contents box, document nav, sim list, error list, and the
+   quiz stem. All still .lx-prefixed, so none of them can reach /host or /play.
+   ========================================================================== */
+
+/* The teacher-authored question stem. It was rendered at .lx-h1 (44px on
+   desktop), a scale the rest of this design reserves for short page titles —
+   a two-sentence stem became several lines of 44px type that dwarfed the answer
+   options below it. Still an <h1> for the document outline; just sized as the
+   content it is. */
+.lx-stem {
+  margin: 0 0 var(--lx-sp-5); color: var(--lx-ink-1);
+  font: 600 22px/30px var(--sans); letter-spacing: -.06px;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) { .lx-stem { font-size: 26px; line-height: 34px; } }
+.lx-hint--tight { margin: 0 0 var(--lx-sp-2); }
+
+/* Contents. Closed at rest: open would push a long document down on every
+   visit, and the summary already says what it is and how big. */
+.lx-toc {
+  max-width: 640px; margin: var(--lx-sp-5) 0 0;
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-in);
+  background: var(--lx-surface);
+}
+.lx-toc-sum {
+  display: flex; align-items: baseline; gap: var(--lx-sp-2); cursor: pointer;
+  padding: var(--lx-sp-3) var(--lx-sp-4);
+  font: 600 15px/20px var(--sans); color: var(--lx-ink-1);
+}
+.lx-toc-n { font: 400 14px/20px var(--sans); color: var(--lx-ink-3); }
+.lx-toclist {
+  list-style: none; margin: 0; padding: 0 var(--lx-sp-4) var(--lx-sp-4);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.lx-toc-i { font: 400 15px/22px var(--sans); }
+.lx-toc-i--h3 { padding-left: var(--lx-sp-4); }
+
+/* Where to go after reading. Two big targets, side by side above 600px. */
+.lx-docnav {
+  display: flex; flex-wrap: wrap; gap: var(--lx-sp-3);
+  max-width: 900px; margin: var(--lx-sp-7) 0 var(--lx-sp-4);
+}
+.lx-docnav-a {
+  flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+  padding: var(--lx-sp-3) var(--lx-sp-4);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-in);
+  background: var(--lx-surface); text-decoration: none;
+}
+.lx-docnav-a:hover { border-color: var(--kosen-blue-deep); background: var(--lx-hover); }
+.lx-docnav-a--next { text-align: right; }
+.lx-docnav-lab { font: 600 13px/18px var(--sans); color: var(--lx-ink-3); }
+.lx-docnav-t { font: 600 16px/22px var(--sans); color: var(--lx-ink-1); overflow-wrap: anywhere; }
+.lx-docnav-up { margin: 0; font: 400 15px/22px var(--sans); }
+.lx-crumb-sep { color: var(--lx-ink-3); }
+
+.lx-simlist { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--lx-sp-4); }
+.lx-simlist > li { flex: 1 1 320px; max-width: 520px; display: flex; }
+.lx-simcard {
+  width: 100%; padding: var(--lx-sp-4);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+  background: var(--lx-surface);
+}
+.lx-simcard-t { margin: 0 0 var(--lx-sp-3); font: 600 18px/24px var(--sans); color: var(--lx-ink-1); }
+.lx-simcard-meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--lx-sp-3); font: 400 15px/22px var(--sans); }
+
+.lx-errlist {
+  list-style: none; margin: var(--lx-sp-5) 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--lx-sp-3);
+}
+.lx-err-what { display: block; margin-top: 2px; font: 400 14px/20px var(--sans); color: var(--lx-ink-2); }
+
+/* The active tier-2 item. Weight + underbar, never colour alone. */
+.lx-nav-a--here { font-weight: 700; color: var(--lx-ink-1); box-shadow: inset 0 -3px 0 var(--kmitl-orange); }
+.lx-staff-nav { flex: none; display: flex; }
+
+/* Module titles are <h3> now (they were <span>s inside <summary>, so a 7-module
+   19-unit course produced no heading outline at all). Reset the heading's own
+   box so the summary layout is unchanged. */
+.lx-mod-t { margin: 0; font: inherit; color: inherit; display: inline; }
+
+/* ==========================================================================
+   TEACHER DASHBOARD — console / assess / work. These three pages used to be
+   split across two pre-.lx- systems: console on .stage/.masthead/.console-body,
+   assess+work on .pwrap/.join-card — the SAME wrapper the real, live,
+   student-facing "join a live game" screen (player.html) still uses, along
+   with error.html and submit_work.html. Reusing .join-card here was the risk:
+   any dashboard-specific tweak would have leaked onto those live student
+   pages. Everything below is a dedicated set that shares only the .lx-page
+   tokens (so dark mode "just works" the same as the rest of the site) and
+   touches nothing .pwrap/.join-card/.pjoin depend on.
+   ========================================================================== */
+.lx-dashhead {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--lx-sp-4) var(--lx-sp-6); flex-wrap: wrap; margin: 0 0 var(--lx-sp-5);
+}
+.lx-dashhead .lx-h1 { margin-bottom: 6px; }
+.lx-dashhead .lx-btn { flex: none; }
+
+.lx-panelstack { display: flex; flex-direction: column; gap: var(--lx-sp-5); max-width: 760px; }
+.lx-panel {
+  padding: var(--lx-sp-5); border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+  background: var(--lx-surface);
+}
+.lx-panel h1 { margin: 0 0 var(--lx-sp-2); font: 600 22px/28px var(--sans); color: var(--lx-ink-1); }
+.lx-panel h2 { margin: var(--lx-sp-5) 0 var(--lx-sp-2); font: 600 17px/24px var(--sans); color: var(--lx-ink-1); }
+.lx-panel > .lx-btn, .lx-panel > form { margin-top: var(--lx-sp-3); }
+
+.lx-subform { padding: var(--lx-sp-3) 0; border-top: 1px solid var(--lx-stroke); }
+.lx-subform:first-of-type { border-top: 0; padding-top: 0; }
+
+.lx-select {
+  display: block; width: 100%; padding: 10px var(--lx-sp-3);
+  border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-in);
+  background: var(--lx-surface); color: var(--lx-ink-1);
+  font: 400 16px/24px var(--sans);
+}
+.lx-select:focus { outline: 2px solid var(--kosen-blue-deep); outline-offset: 1px; }
+.lx-select--sm { width: auto; padding: 8px 10px; font-size: 14px; }
+
+.lx-form--wide { max-width: 620px; }
+.lx-field--row { display: flex; gap: var(--lx-sp-2); align-items: center; }
+.lx-field--row > * { flex: 1 1 0; }
+.lx-field--row > .in-narrow { flex: 0 0 6rem; }
+.lx-field:not(.lx-field--row) > .lx-input + .lx-textarea,
+.lx-field:not(.lx-field--row) > .lx-textarea + .lx-input { margin-top: 6px; }
+
+.lx-table-wrap { overflow-x: auto; margin-top: var(--lx-sp-3); }
+.lx-table { width: 100%; border-collapse: collapse; font: 400 15px/22px var(--sans); }
+.lx-table th, .lx-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--lx-stroke); }
+.lx-table th { font: 600 13px/18px var(--sans); color: var(--lx-ink-2); text-transform: uppercase; letter-spacing: .04em; }
+.lx-table td { color: var(--lx-ink-1); font-variant-numeric: tabular-nums; }
+.lx-table tbody tr:last-child td { border-bottom: 0; }
+
+.lx-caption { margin: var(--lx-sp-2) 0 0; font: 400 13px/20px var(--sans); color: var(--lx-ink-3); }
+
+.lx-badge { display: inline-block; padding: 1px 8px; border-radius: var(--lx-r-pill); font: 700 12px/18px var(--sans); }
+.lx-badge--warn { background: #FDF0EC; color: #7A2A0F; }
+
+.lx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--lx-sp-3); }
+.lx-listcard {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--lx-sp-3) var(--lx-sp-4);
+  flex-wrap: wrap; padding: var(--lx-sp-4); border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-card);
+  background: var(--lx-surface);
+}
+.lx-listcard-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lx-listcard-t { font: 600 16px/22px var(--sans); color: var(--lx-ink-1); }
+.lx-listcard-t--link { text-decoration: none; }
+.lx-listcard-t--link:hover { text-decoration: underline; }
+.lx-listcard-sub { font: 400 14px/20px var(--sans); color: var(--lx-ink-2); }
+.lx-listcard-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lx-listcard-actions { display: flex; align-items: center; gap: var(--lx-sp-2); flex-wrap: wrap; }
+
+.lx-inline-form { display: flex; align-items: center; gap: var(--lx-sp-2); flex-wrap: wrap; }
+
+.lx-chip {
+  display: inline-block; padding: 2px 9px; border: 1px solid var(--lx-stroke); border-radius: var(--lx-r-pill);
+  background: var(--lx-ground); font: 400 12px/18px var(--sans); color: var(--lx-ink-2);
+}
+
+.lx-btn--sm { padding: 7px var(--lx-sp-3); font-size: 13px; }
+.lx-btn--ghost { background: transparent; border: 1px solid var(--lx-stroke); color: var(--lx-ink-1); }
+.lx-btn--ghost:hover { background: var(--lx-hover); }
+.lx-btn--danger { color: var(--a-red-d); border-color: rgba(226, 27, 60, .4); }
+.lx-btn--danger:hover { background: rgba(226, 27, 60, .08); }
+
+/* ==========================================================================
+   DARK MODE. The simulations already honoured prefers-color-scheme, so a
+   dark-OS student got a bright page with a dark iframe sitting in the middle of
+   it. Only the .lx-page token block is remapped — one place, and the game
+   screens keep their fixed theme.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  .lx-page {
+    --lx-surface: #16191D;
+    --lx-ground:  #101317;
+    --lx-hover:   #1D2228;
+    --lx-ink-1: #E9E6E2;     /* 14.4:1 on --lx-surface */
+    --lx-ink-2: #B4ADA5;     /*  7.6:1 */
+    --lx-ink-3: #9A938B;     /*  5.6:1 */
+    --lx-stroke: rgba(233, 230, 226, .16);
+  }
+  body.lx-page { background: var(--lx-ground); color: var(--lx-ink-1); }
+  /* Link and CTA hues are chosen for white; on a dark ground the deep variants
+     fall under 4.5:1, so both step up to the brighter brand tones. */
+  .lx-page .lx-link, .lx-page .lx-foot-a { color: #7CC4F0; }        /* 7.4:1 */
+  .lx-page .lx-cta { color: #FF8A4C; border-color: #FF8A4C; background: transparent; }
+  .lx-page .lx-cta:hover { background: #FF8A4C; color: #16191D; }
+  .lx-page .lx-eyebrow { color: #7CC4F0; }
+  .lx-page .lx-tier2, .lx-page .lx-foot { background: var(--lx-surface); }
+  .lx-page .lx-prose pre, .lx-page .lx-prose code { background: #0B0D10; }
+  .lx-page .lx-opt:has(input:checked) { border-color: #7CC4F0; background: #14212B; }
+  .lx-page .lx-err { background: #2A1410; border-color: #7A3A28; color: #FFC2AE; }
+  .lx-page .lx-btn { background: #1E7FC2; }
+  .lx-page .lx-btn:hover { background: #2E93D8; }
+  .lx-page .lx-badge--warn { background: #2A1410; border: 1px solid #7A3A28; color: #FFC2AE; }
+
+  /* THE UNIT TILES. These carry hardcoded LIGHT fills (#EEF6FB and friends) with
+     `color: var(--lx-ink-1)` — which the token remap above turns near-white, so
+     the week number sat at 1.14:1 on its own plate: the primary navigation token
+     of the densest page on the site, invisible. Caught by walking the site as a
+     student in dark mode, not by reading the diff.
+
+     Fixed by giving the tints dark equivalents rather than by pinning the ink:
+     the tile is a tinted plate, and a light plate on a dark page is the thing
+     that was wrong. Ratios measured against each new fill. */
+  .lx-page .lx-unit-tile--lab      { background: #10283A; color: #DCEBF7; }   /* 11.3:1 */
+  .lx-page .lx-unit-tile--exam     { background: #32180E; color: #FADFD0; }   /* 10.4:1 */
+  .lx-page .lx-unit-tile--guide    { background: #24211D; color: #E7E2DA; }   /* 12.1:1 */
+  .lx-page .lx-unit-tile--ctf      { background: #05070A; color: #E9E6E2; }   /* 16.8:1 */
+  .lx-page .lx-unit-tile--capstone { background: var(--kmitl-orange); color: #16110C; } /* 6.1:1 */
+  .lx-page .lx-unit-tile--review,
+  .lx-page .lx-unit-tile--none     { background: var(--lx-surface); color: var(--lx-ink-1); }
+
+  /* Same class of bug on the badge chips and the card plates. */
+  .lx-page .lx-tag { background: transparent; border-color: var(--lx-stroke); color: var(--lx-ink-2); }
+  .lx-page .lx-pill { background: var(--lx-surface); border-color: var(--lx-ink-3); color: var(--lx-ink-2); }
+  .lx-page .lx-tile--c, .lx-page .lx-sq--c { background-color: #2A2F36; }
+
+  /* Same class of bug on the teacher staff bar: its cream background and
+     hover tint are fixed light-mode values, but .lx-staffbar-a/-a--end's text
+     colors are --lx-ink-1/--lx-ink-3, which the remap above turns near-white —
+     near-white text sat on a light cream bar, unreadable. Caught from a real
+     dark-mode browser screenshot, not the token audit. */
+  .lx-page .lx-staffbar { background: #241C15; }
+  .lx-page .lx-staffbar-lab { color: #FF8A4C; }
+  .lx-page .lx-staffbar-a:hover { background: #3A2A1C; }
+}
+
+/* ==========================================================================
+   PRINT. Students print worksheets to work from in the lab. Without this the
+   paper carried the two-tier header and the three-column footer, and every
+   code block was CLIPPED — .lx-prose pre relies on horizontal scrolling, which
+   does not exist on paper.
+   ========================================================================== */
+@media print {
+  .lx-top, .lx-foot, .lx-skip, .lx-staffbar, .lx-docnav, .lx-docnav-up,
+  .lx-toc, .lx-crumb { display: none !important; }
+  body.lx-page, .lx-ground, .lx-tint, .lx-page { background: #fff !important; color: #000; }
+  .lx-wrap { max-width: none; padding: 0; }
+  .lx-prose { max-width: none; }
+  .lx-prose pre { white-space: pre-wrap; overflow-x: visible; word-break: break-word;
+                  border: 1px solid #bbb; background: #f6f6f6; }
+  .lx-prose p, .lx-prose li { max-width: none; }
+  /* A printed link is dead text unless it says where it goes. Skipped for
+     in-page anchors, which say nothing useful on paper. */
+  .lx-prose a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 11px; word-break: break-all; }
+  .lx-prose h2, .lx-prose h3 { break-after: avoid; }
+  .lx-prose pre, .lx-prose table, .lx-prose blockquote { break-inside: avoid; }
+  .lx-h1 { font-size: 22pt; }
+}
+
+/* "This week". Students had 19 identical rows and no way to tell which one the
+   class is on — with no student accounts there is no progress to infer, so the
+   cohort's position is stated once in $COURSES and shown here. Absent = nothing
+   rendered, which is exactly how every course behaved before. */
+.lx-nowline { margin: 0 0 var(--lx-sp-4); font: 400 15px/22px var(--sans); }
+.lx-unit--now { background: var(--lx-hover); box-shadow: inset 3px 0 0 var(--kmitl-orange); }
+.lx-nowtag {
+  align-self: center; white-space: nowrap;
+  padding: 3px 9px; border-radius: var(--lx-r-pill);
+  background: var(--kmitl-orange-deep); color: #fff;      /* 5.63:1 */
+  font: 700 12px/16px var(--sans);
+}
+@media (prefers-color-scheme: dark) {
+  .lx-page .lx-unit--now { background: #1D2228; }
+  .lx-page .lx-nowtag { background: var(--kmitl-orange); color: #16110C; }  /* 6.1:1 */
+}

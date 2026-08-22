@@ -1,0 +1,38 @@
+# Sandbox/teaching only; for authorized lab use.
+#
+# Week 13 — INSECURE Dockerfile (the "before"). Every line is a teaching
+# defect. Run `trivy config` against it to see the findings light up, then
+# compare with Dockerfile.hardened. DO NOT ship anything like this.
+#
+# OWASP 2025 A02 Security Misconfiguration.
+
+# DEFECT: ':latest' is unpinned and non-reproducible — today's build != next
+# week's. CWE-1104 (unmaintained/uncontrolled component version), CWE-16.
+FROM python:latest
+
+# DEFECT: hard-coded secret baked into an ENV layer. Anyone with the image
+# can `docker history` / `docker inspect` and read it. CWE-798 (hard-coded
+# credentials), CWE-200 (information exposure), CWE-16.
+ENV API_TOKEN=sk_live_supersecret_DO_NOT_DO_THIS
+ENV AWS_SECRET_ACCESS_KEY=AKIAEXAMPLEdeadbeefdeadbeef
+
+WORKDIR /app
+
+# DEFECT: copies the ENTIRE build context — including .git, .env, keys,
+# node_modules, CI files — into the image. Bloats it and leaks secrets.
+# CWE-538 (insertion of sensitive info into externally accessible file).
+COPY . .
+
+# DEFECT: unpinned install; also runs as root (default). No --no-cache-dir.
+RUN pip install -r requirements.txt
+
+# DEFECT: world-writable app dir. CWE-732 (incorrect permission assignment
+# for critical resource) — any process in the container can tamper with code.
+RUN chmod -R 777 /app
+
+EXPOSE 5000
+
+# DEFECT: no USER directive, so the container runs as root (uid 0). A
+# container escape or RCE then has root. CWE-250 (execution with unnecessary
+# privileges).
+CMD ["python", "app.py"]

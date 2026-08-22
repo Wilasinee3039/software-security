@@ -1,0 +1,12 @@
+{
+  "_comment": "Sandbox/teaching only; for authorized lab use. INSECURE over-permissive AWS IAM policy. OWASP 2025 A02 Security Misconfiguration; CWE-732 incorrect permission assignment; CWE-269 improper privilege management. This grants every action on every resource = full admin = no least privilege. Compare with iam-policy-leastpriv.json.",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEverythingDoNotUse",
+      "Effect": "Allow",
+      "Action": "*",
+      "Resource": "*"
+    }
+  ]
+}

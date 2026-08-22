@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Console — KOSEN·KMITL Live Quiz{% endblock %}
+{% block main %}
+<div class="lx-ground">
+  <div class="lx-wrap">
+
+    <!-- Session CSRF token, always present so every state-changing form on the page can carry it
+         (the per-set start/delete forms below each embed it). All titles/topics render through Jinja
+         autoescaping — never |safe. -->
+    <form hidden><input type="hidden" name="csrf_token" value="{{ csrf_token }}"></form>
+
+    <div class="lx-dashhead">
+      <div>
+        <p class="lx-eyebrow">Live Quiz · Teacher console</p>
+        <h1 class="lx-h1">Your question sets</h1>
+        <p class="lx-lead lx-measure">Paste a Markdown item bank, preview how many questions parse, and save it as a
+          reusable set. Only you can see, edit, or start a game from your own sets.</p>
+      </div>
+      <a class="lx-btn" href="/console/sets/new">+ New question set</a>
+    </div>
+
+    {% if sets %}
+    <ul class="lx-list">
+      {% for s in sets %}
+      {% set meta = set_meta.get(s.id, {"topics": [], "count": 0}) %}
+      {% set topics = meta.topics %}
+      <li class="lx-listcard">
+        <div class="lx-listcard-main">
+          <span class="lx-listcard-t">{{ s.title }}</span>
+          <div class="lx-listcard-meta">
+            <span class="lx-chip">{{ meta.count }} question{{ '' if meta.count == 1 else 's' }}</span>
+            {% for t in topics[:3] %}<span class="lx-chip">{{ t }}</span>{% endfor %}
+            {% if topics|length > 3 %}<span class="lx-chip">+{{ topics|length - 3 }} more</span>{% endif %}
+          </div>
+        </div>
+        <div class="lx-listcard-actions">
+          {% if topics %}
+          <!-- This SAST rule checks for Django's csrf_token template tag; this is a Flask/Jinja2
+               app with no Django code, so that tag doesn't exist here. CSRF is enforced by this
+               project's own mechanism instead: the hidden csrf_token field below, verified
+               server-side by auth.csrf_ok()/_check_csrf() in app.py (see tests/test_auth.py). -->
+          <form class="lx-inline-form" method="post" action="/host/create"> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="set_id" value="{{ s.id }}">
+            <select class="lx-select lx-select--sm" name="topic" aria-label="Topic to host from {{ s.title }}">
+              {% for t in topics %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+            </select>
+            <button class="lx-btn lx-btn--sm" type="submit">Start game ▸</button>
+          </form>
+          {% endif %}
+          <a class="lx-btn lx-btn--ghost lx-btn--sm" href="/console/sets/{{ s.id }}/edit">Edit</a>
+          <!-- Same Django csrf_token-tag false positive as the start-form above — this form has
+               its own real csrf_token field, verified server-side; see app.py's _check_csrf(). -->
+          <!-- data-confirm, not onsubmit="return confirm(...)": an inline event
+               handler is inline script, and the app-plane CSP drops it. That
+               left Delete as an unguarded one-click destructive action on a
+               teacher's own question set. console.js re-attaches the prompt. -->
+          <form method="post" action="/console/sets/{{ s.id }}/delete" data-confirm="Delete this set? This cannot be undone."> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="lx-btn lx-btn--ghost lx-btn--sm lx-btn--danger" type="submit">Delete</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="lx-empty">No question sets yet. Create your first set to run a live game — paste a Markdown item
+      bank and it parses into questions.</p>
+    {% endif %}
+  </div>
+</div>
+<script src="/static/confirm.js?v={{ asset_v }}"></script>
+{% endblock %}

@@ -1,0 +1,12 @@
+services:
+  xss-lab:
+    image: python:3.12-slim
+    working_dir: /lab
+    ports:
+      - "8080:5000"
+    volumes:
+      - ./:/lab
+    command: >
+      bash -c "pip install --no-cache-dir flask &&
+               echo '--- vulnerable app on :8080 (use fixed_app.py for the secured version) ---' &&
+               python vulnerable_app.py"

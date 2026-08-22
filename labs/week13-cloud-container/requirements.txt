@@ -1,0 +1,5 @@
+# Week 13 — minimal dependency so both Dockerfiles actually build.
+# The scanning focus this week is the BASE IMAGE + Dockerfile configuration
+# (`trivy config` on the Dockerfiles, `trivy image` on the built images),
+# not outdated app deps — that was Week 12.
+Flask>=3.1.3

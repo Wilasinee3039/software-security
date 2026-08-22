@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 300" role="img" aria-label="A horizontal bar divided into four point-weighted blocks shows where the 100 exam marks fall: Section A, Concepts, 30 points across six independent 5-point items (CIA triad, STRIDE, SAST vs DAST vs SCA vs fuzzing, hashing vs encryption vs encoding, trust boundaries, least privilege and fail closed). Section B, Spot the Vulnerability, 20 points across four 5-point code-snippet items — name the flaw, cite the CWE, give the fix. Section C, Applied SQL Injection, 30 points as one continuous scenario, items C1 through C5, against a single vulnerable login query. Section D, Defense and Design, 20 points across two 10-point items on SQL injection defenses and secure password-reset design. Sections A and C are the two highest-value blocks at 30 points each, shown in the accent color; B and D are 20 points each, shown in the standard color. The exam covers Weeks 1 through 6, runs 120 minutes, and is closed book unless stated otherwise. It pairs with the Week 9 hands-on CTF practical.">
+  <title>Week 8 written midterm — exam blueprint by section and points</title>
+  <style>
+    .title{font:700 15px system-ui,sans-serif;fill:#1f2937;}
+    .subtitle{font:400 11px system-ui,sans-serif;fill:#6b7280;}
+    .segBlue{fill:#017BC4;stroke:#ffffff;stroke-width:1.5;}
+    .segOrange{fill:#E35205;stroke:#ffffff;stroke-width:1.5;}
+    .segNum{font:700 14px system-ui,sans-serif;fill:#ffffff;text-anchor:middle;}
+    .leader{stroke:#6b7280;stroke-width:1.25;fill:none;}
+    .chip{fill:#e5e7eb;stroke:#9ca3af;stroke-width:1;}
+    .chipOrange{fill:#fde3d3;stroke:#E35205;stroke-width:1.25;}
+    .chipText{font:700 10px system-ui,sans-serif;fill:#374151;text-anchor:middle;}
+    .chipTextOrange{font:700 10px system-ui,sans-serif;fill:#9a3a0a;text-anchor:middle;}
+    .topic{font:400 11.5px system-ui,sans-serif;fill:#1f2937;text-anchor:middle;}
+    .pts{font:700 12px system-ui,sans-serif;fill:#017BC4;text-anchor:middle;}
+    .subnote{font:400 10px system-ui,sans-serif;fill:#6b7280;text-anchor:middle;}
+    .footer{font:400 10.5px system-ui,sans-serif;fill:#6b7280;text-anchor:middle;}
+    @media (prefers-color-scheme: dark) {
+      .title{fill:#e5e7eb;}
+      .subtitle{fill:#9aa3ad;}
+      .segBlue{fill:#4aa3dd;stroke:#12181f;}
+      .segOrange{fill:#ff7a3d;stroke:#12181f;}
+      .segNum{fill:#0b1220;}
+      .leader{stroke:#9aa3ad;}
+      .chip{fill:#374151;stroke:#6b7280;}
+      .chipOrange{fill:#3a2417;stroke:#ff7a3d;}
+      .chipText{fill:#e5e7eb;}
+      .chipTextOrange{fill:#ffb37a;}
+      .topic{fill:#e5e7eb;}
+      .pts{fill:#4aa3dd;}
+      .subnote{fill:#9aa3ad;}
+      .footer{fill:#9aa3ad;}
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="40" y="28" class="title">Week 8 Midterm — Written Exam Blueprint</text>
+  <text x="40" y="46" class="subtitle">100 pts total · 120 min · closed book unless stated otherwise · covers Weeks 1–6</text>
+
+  <!-- Bar: 4 segments, width proportional to points (6.4px per point). Boundaries x = 40, 232, 360, 552, 680. -->
+  <!-- A Concepts 30pts: x40-232 -->
+  <rect x="40" y="72" width="192" height="64" class="segOrange"/>
+  <text x="136" y="108" class="segNum">30</text>
+  <!-- B Spot the Vulnerability 20pts: x232-360 -->
+  <rect x="232" y="72" width="128" height="64" class="segBlue"/>
+  <text x="296" y="108" class="segNum">20</text>
+  <!-- C Applied SQL Injection 30pts: x360-552 -->
+  <rect x="360" y="72" width="192" height="64" class="segOrange"/>
+  <text x="456" y="108" class="segNum">30</text>
+  <!-- D Defense & Design 20pts: x552-680 -->
+  <rect x="552" y="72" width="128" height="64" class="segBlue"/>
+  <text x="616" y="108" class="segNum">20</text>
+
+  <!-- Leader lines -->
+  <path class="leader" d="M136,136 L136,152"/>
+  <path class="leader" d="M296,136 L296,152"/>
+  <path class="leader" d="M456,136 L456,152"/>
+  <path class="leader" d="M616,136 L616,152"/>
+
+  <!-- Section A -->
+  <rect x="94" y="152" width="84" height="14" rx="3" class="chipOrange"/>
+  <text x="136" y="162" class="chipTextOrange">SECTION A</text>
+  <text x="136" y="192" class="topic">Concepts</text>
+  <text x="136" y="220" class="pts">30 pts</text>
+  <text x="136" y="236" class="subnote">6 × 5 pts</text>
+
+  <!-- Section B -->
+  <rect x="254" y="152" width="84" height="14" rx="3" class="chip"/>
+  <text x="296" y="162" class="chipText">SECTION B</text>
+  <text x="296" y="184" class="topic">Spot the</text>
+  <text x="296" y="200" class="topic">Vulnerability</text>
+  <text x="296" y="220" class="pts">20 pts</text>
+  <text x="296" y="236" class="subnote">4 × 5 pts</text>
+
+  <!-- Section C -->
+  <rect x="414" y="152" width="84" height="14" rx="3" class="chipOrange"/>
+  <text x="456" y="162" class="chipTextOrange">SECTION C</text>
+  <text x="456" y="192" class="topic">Applied SQL Injection</text>
+  <text x="456" y="220" class="pts">30 pts</text>
+  <text x="456" y="236" class="subnote">one scenario · C1–C5</text>
+
+  <!-- Section D -->
+  <rect x="574" y="152" width="84" height="14" rx="3" class="chip"/>
+  <text x="616" y="162" class="chipText">SECTION D</text>
+  <text x="616" y="192" class="topic">Defense &amp; Design</text>
+  <text x="616" y="220" class="pts">20 pts</text>
+  <text x="616" y="236" class="subnote">2 × 10 pts</text>
+
+  <!-- Footer -->
+  <text x="360" y="270" class="footer">Pairs with the Week 9 hands-on CTF practical.</text>
+</svg>

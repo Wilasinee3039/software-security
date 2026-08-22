@@ -1,0 +1,11 @@
+services:
+  crypto-lab:
+    image: python:3.12-slim
+    working_dir: /lab
+    volumes:
+      - ./:/lab
+    command: >
+      bash -c "pip install --no-cache-dir pycryptodome argon2-cffi &&
+               python vulnerable_crypto.py &&
+               echo '--- now fix it in solution_skeleton.py ---' &&
+               python solution_skeleton.py"

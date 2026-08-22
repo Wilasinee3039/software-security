@@ -1,0 +1,133 @@
+/*
+ * vuln.c — deliberately vulnerable C program (Week 11: Memory-Safety & Exploitation)
+ * =================================================================================
+ * Sandbox/teaching only; for authorized lab use.
+ *
+ * This file packs several CLASSIC memory-safety bugs into one tiny program so
+ * students can: (1) find the crash with a fuzzer, then (2) exploit it to redirect
+ * control flow to win(), and (3) see mitigations break the attack.
+ *
+ * !!! Do NOT run the exploited binary anywhere but an isolated VM. !!!
+ *
+ * Bug classes demonstrated:
+ *   - CWE-121: Stack-based Buffer Overflow  (gets()/strcpy into a small buffer)
+ *   - CWE-787: Out-of-bounds Write          (the overflow writes past the buffer)
+ *   - CWE-134: Use of Externally-Controlled Format String (printf(user_input))
+ *
+ * Build (see Makefile):
+ *   make vuln            # teaching build: mitigations OFF -> exploit works
+ *   make vuln-hardened   # mitigations ON  -> exploit breaks
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+/*
+ * gets() was REMOVED from the C standard library in C11 because it is impossible
+ * to use safely (no way to bound the read). Modern SDK headers therefore no longer
+ * declare it. We forward-declare it ourselves so this teaching example still
+ * compiles. On a real Linux glibc lab box it links fine.
+ *   CWE-242: Use of Inherently Dangerous Function (gets)
+ */
+char *gets(char *s);
+
+/* ------------------------------------------------------------------------- *
+ *  win() — THE EXPLOIT TARGET
+ * ------------------------------------------------------------------------- *
+ * This function is never called by main(). The whole point of the exercise is
+ * to overwrite a saved return address on the stack so that the CPU "returns"
+ * INTO win(). Find its address with:
+ *     objdump -d vuln | grep -A1 '<win>:'
+ *     # or in gdb:  (gdb) p win   /  info functions win
+ */
+void win(void) {
+    puts("\n[+] win() reached — control flow hijacked!");
+    const char *f = getenv("FLAG_PWN");
+    printf("[+] %s\n", f ? f : "FLAG{stack_smashing_for_fun_and_education}");
+    /* In a CTF this might spawn a shell instead of printing a flag: */
+    system("/bin/sh");   /* CWE-78 if reachable with attacker input — intended here */
+}
+
+/* ------------------------------------------------------------------------- *
+ *  parse_input() — THE SHARED VULNERABLE ROUTINE
+ * ------------------------------------------------------------------------- *
+ * Both vulnerable() (interactive) and the libFuzzer harness (fuzz_harness.c)
+ * drive THIS function, so the fuzzer exercises exactly the code path that the
+ * exploit attacks. Keep the bug here so the two never drift apart.
+ *
+ *   CWE-121 / CWE-787: strcpy() copies the entire NUL-terminated source into a
+ *   fixed 64-byte stack buffer with no length check. Any input longer than the
+ *   buffer overflows it and corrupts adjacent stack memory (saved frame pointer,
+ *   then the saved return address).
+ *
+ * Stack frame layout (x86-64, grows DOWN toward lower addresses):
+ *
+ *      higher addresses
+ *      +-----------------------------+
+ *      |  saved return address       |  <- overwrite THIS to point at win()
+ *      +-----------------------------+
+ *      |  saved RBP (frame pointer)  |
+ *      +-----------------------------+
+ *      |  buf[64]                    |  <- strcpy starts writing HERE, upward
+ *      +-----------------------------+
+ *      lower addresses
+ *
+ * Intended exploit: send  [ 64 bytes padding ][ 8 bytes saved RBP ][ &win ]
+ * (exact offset = 64 + 8 = 72 on a typical build; CONFIRM with a cyclic pattern,
+ *  do not assume — see exploit_skeleton.py).
+ */
+int parse_input(const char *src) {
+    char buf[64];          /* small fixed-size stack buffer */
+    strcpy(buf, src);      /* <-- CWE-121: no bounds check, classic overflow   */
+    return (int)strlen(buf);
+}
+
+/* ------------------------------------------------------------------------- *
+ *  vulnerable() — interactive entry point reached from main()
+ * ------------------------------------------------------------------------- */
+void vulnerable(void) {
+    char line[256];
+
+    puts("Enter your name:");
+    /*
+     * gets() reads an unbounded line into line[256] -> CWE-121 in its own right.
+     * We then hand it to the shared vulnerable routine, which overflows buf[64].
+     * (Either bug alone is exploitable; this mirrors real "double dangerous"
+     *  legacy code.)
+     */
+    if (gets(line) == NULL)
+        return;
+
+    int n = parse_input(line);   /* overflow happens inside here */
+    printf("Hello, your input was %d bytes long.\n", n);
+}
+
+/* ------------------------------------------------------------------------- *
+ *  format_bug() — separate format-string demonstration
+ * ------------------------------------------------------------------------- *
+ *   CWE-134: the user string is passed as the FORMAT argument of printf.
+ *   Attacker can leak stack memory with "%x %x %p" or write with "%n".
+ *   Correct code is:  printf("%s", user_input);
+ */
+void format_bug(const char *user_input) {
+    printf("You said: ");
+    printf(user_input);   /* <-- CWE-134: NEVER pass untrusted data as a format */
+    printf("\n");
+}
+
+int main(int argc, char **argv) {
+    /*
+     * main() drives the VULNERABLE path on purpose. argv[1], if present, is fed
+     * to the format-string sink so students can poke both bugs from one binary:
+     *     ./vuln '%x.%x.%x.%p'      # leak stack via CWE-134
+     *     ./vuln                    # then type a long line for the CWE-121 overflow
+     */
+    if (argc > 1)
+        format_bug(argv[1]);
+
+    vulnerable();
+    puts("Returned normally — exploit did NOT fire.");
+    return 0;
+}
