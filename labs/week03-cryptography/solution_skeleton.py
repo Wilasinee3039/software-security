@@ -25,6 +25,11 @@ def encrypt_gcm(data: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:
     ct, tag = cipher.encrypt_and_digest(data)
     return nonce, ct, tag
 
+def decrypt_gcm(nonce: bytes, ct: bytes, tag: bytes, key: bytes) -> bytes:
+    # เพิ่มฟังก์ชันถอดรหัส สำหรับทดสอบ Round-trip
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    return cipher.decrypt_and_verify(ct, tag)
+
 def reset_token() -> str:
     # FIX: CSPRNG
     import secrets
@@ -32,7 +37,24 @@ def reset_token() -> str:
 
 if __name__ == "__main__":
     key = bytes.fromhex(os.environ.get("ENC_KEY_HEX", os.urandom(32).hex()))
+    
+    # ทดสอบ Argon2
     h = store_password("password123")
     print("argon2 ok:", verify_password(h, "password123"))
-    print("gcm:", encrypt_gcm(b"secret", key))
+    
+    # ทดสอบ GCM Round-trip และ Tampered-fails
+    nonce, ct, tag = encrypt_gcm(b"secret", key)
+    print("gcm round-trip:", decrypt_gcm(nonce, ct, tag, key) == b"secret")
+    
+    # แกล้งแก้ข้อมูล 1 Byte เพื่อทดสอบ Tamper
+    tampered_ct = bytearray(ct)
+    if len(tampered_ct) > 0:
+        tampered_ct[0] ^= 1
+        
+    try:
+        decrypt_gcm(nonce, bytes(tampered_ct), tag, key)
+    except ValueError as e:
+        print(f"Tampered-fails proof: MAC check failed ({e})")
+        
+    # ทดสอบ Token
     print("token:", reset_token())
