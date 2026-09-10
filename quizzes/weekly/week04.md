@@ -34,4 +34,4 @@ HTML encoding helps prevent XSS attacks, but it does not protect SQL queries fro
 **Explanation:**  
 The payload worked because the application directly concatenated user input into the SQL query, and the -- symbol commented out the password condition, allowing login without knowing the correct password.
 
-**Personal flag:** `FLAG{sqli_demo}`
+**Personal flag:** N/A (No personal flag was issued for this lab) 

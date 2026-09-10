@@ -12,6 +12,8 @@
 |------|-----------|------|-------|
 | Wilasinee Mangkorn     | 6631503039          |05/09/2026      |       |
 
+**AI Usage Disclosure:** I use AI to help understand vulnerabilities, review security concepts, and improve the quality of explanations. 
+
 ## Part 2 — Lecture Questions
 
 ### 1. Why does a parameterized query defeat SQL injection?
@@ -251,9 +253,7 @@ However, defense in depth is still important because command injection and file 
   cropped window carries nothing that identifies you, and the lab's own output is
   byte-identical for the whole cohort *by design*, so the stamp is the only thing that makes
   the shot yours. Generic or borrowed evidence is not accepted.
-- **Personalized flag (if this lab issues one):** FLAG{sqli_demo}
-FLAG{cmdi_demo}
-  *Flags are unique per student — submitting another student's flag is a violation. How to submit: **learn.zcr.ai/submit** (full guide: `SUBMISSION.md` in the repo root).*
+- **Personalized flag (if this lab issues one):** N/A (no personalized flag issued in this environment)
 - **Explain in My Own Words**
 
 #### 1. What did you do, and why did the vulnerability work?
